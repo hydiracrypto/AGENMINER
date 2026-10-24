@@ -133,3 +133,20 @@ Stage Summary:
 - Bug "miring" tuntas: penyebab utama = min-content tombol contoh prompt (truncate) melalui grid kolom implisit + tidak ada guard overflow-x; diperbaiki dengan grid-cols-1 di 7 grid + guard html/body + konsistensi max-width header/nav di seluruh breakpoint (sm/md/lg).
 - Desktop dirapikan: Mine tab kini dashboard 2 kolom seimbang (statistik+core | prompt+cara kerja), tablet 768-1023 kini sejajar penuh, login adaptif md.
 - Terverifikasi NOL overflow elemen di 13 viewport x 5 tab; fitur inti (mining, pool stats live, fee 5%) tetap berfungsi.
+
+---
+Task ID: git-push
+Agent: main (Z.ai)
+Task: Push all latest project files to GitHub (hydiracrypto/AGENMINER)
+
+Work Log:
+- Verified git state: branch main, working tree clean, 182 files tracked (all Task 1-4 work committed at d5bb34b)
+- Checked remote repo hydiracrypto/AGENMINER via ls-remote (exists, empty)
+- Added remote origin https://github.com/hydiracrypto/AGENMINER.git
+- Pushed main branch using user-provided token (token NOT persisted in .git/config)
+- Verified remote HEAD == local HEAD (d5bb34b480faf8f8eb01af39628585ea3174c5ca)
+- Security check: .env contains only local DATABASE_URL path (no secrets); db/custom.db tracked intentionally per user request
+
+Stage Summary:
+- GitHub repo hydiracrypto/AGENMINER now contains full latest codebase: src (game components incl. PoolStatsCard, i18n zh/en, onchain-mint), contracts (AgenticMiner.sol + DEPLOY_GUIDE.md), prisma schema, db, public assets (logo), scripts, worklog
+- Remote main: d5bb34b, up to date with local
