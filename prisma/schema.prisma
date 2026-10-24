@@ -1,0 +1,65 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// AGENTIC MINER — Game Database Schema
+// Token: AGENMINER (BEP-20 di BNB Smart Chain)
+// ============================================
+
+model User {
+  id            String       @id @default(cuid())
+  walletAddress String       @unique // alamat wallet BNB Chain (lowercase)
+  username      String? // nama penambang
+  avatar        String       @default("🤖") // emoji avatar
+  balance       Float        @default(0) // saldo AGENMINER tersedia
+  totalMined    Float        @default(0) // total AGENMINER yang pernah ditambang
+  miningPower   Int          @default(1) // level rig → multiplier reward
+  streak        Int          @default(0) // streak aktivitas harian
+  lastMineAt    DateTime? // cooldown mining terakhir
+  lastActiveDate String? // tanggal aktivitas terakhir (yyyy-mm-dd) untuk streak
+  lastCheckin   String? // tanggal check-in harian terakhir (yyyy-mm-dd)
+  refCode       String       @unique // kode referral unik
+  referredById  String? // User.id dari pengundang
+  refEarnings   Float        @default(0) // total komisi referral
+  createdAt     DateTime     @default(now())
+
+  mines       MineLog[]
+  withdrawals Withdrawal[]
+
+  @@index([totalMined])
+  @@index([refCode])
+}
+
+model MineLog {
+  id        String   @id @default(cuid())
+  userId    String
+  prompt    String // prompt AI yang dikirim penambang
+  score     Int // skor evaluasi AI (0-100)
+  reward    Float // AGENMINER didapat
+  aiSummary String? // narasi hasil tambang dari AI
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model Withdrawal {
+  id        String   @id @default(cuid())
+  userId    String
+  amount    Float // jumlah AGENMINER ditarik
+  status    String   @default("PENDING") // PENDING | PROCESSED | REJECTED
+  txHash    String? // hash tx distribusi on-chain (diisi saat diproses)
+  createdAt DateTime @default(now())
+  processedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
