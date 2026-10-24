@@ -2,7 +2,7 @@
 
 // ============================================
 // AGENTIC MINER — Negara Pengguna Kripto Terbanyak
-// Data estimasi gabungan Triple-A & Chainalysis 2024
+// Top global crypto communities by user count
 // ============================================
 
 import { Globe2 } from "lucide-react";
@@ -11,24 +11,24 @@ import { useT } from "@/lib/i18n";
 
 export interface CryptoCountry {
   flag: string;
-  nameId: string;
+  nameZh: string;
   nameEn: string;
   users: number; // estimasi pengguna kripto
   popPct: number; // % dari populasi
-  adoption: number; // Chainalysis Global Adoption Index score
+  adoption: number; // Global Adoption Index score
 }
 
 export const CRYPTO_COUNTRIES: CryptoCountry[] = [
-  { flag: "🇮🇳", nameId: "India", nameEn: "India", users: 103_000_000, popPct: 7.2, adoption: 1 },
-  { flag: "🇮🇩", nameId: "Indonesia", nameEn: "Indonesia", users: 66_000_000, popPct: 23.8, adoption: 3 },
-  { flag: "🇳🇬", nameId: "Nigeria", nameEn: "Nigeria", users: 47_000_000, popPct: 21.5, adoption: 2 },
-  { flag: "🇺🇸", nameId: "Amerika Serikat", nameEn: "United States", users: 42_000_000, popPct: 12.4, adoption: 4 },
-  { flag: "🇻🇳", nameId: "Vietnam", nameEn: "Vietnam", users: 21_000_000, popPct: 21.2, adoption: 5 },
-  { flag: "🇵🇰", nameId: "Pakistan", nameEn: "Pakistan", users: 20_000_000, popPct: 8.6, adoption: 8 },
-  { flag: "🇧🇷", nameId: "Brasil", nameEn: "Brazil", users: 17_500_000, popPct: 8.1, adoption: 10 },
-  { flag: "🇵🇭", nameId: "Filipina", nameEn: "Philippines", users: 16_000_000, popPct: 14.2, adoption: 6 },
-  { flag: "🇹🇭", nameId: "Thailand", nameEn: "Thailand", users: 12_000_000, popPct: 17.2, adoption: 12 },
-  { flag: "🇷🇺", nameId: "Rusia", nameEn: "Russia", users: 11_900_000, popPct: 8.2, adoption: 15 },
+  { flag: "🇮🇳", nameZh: "印度", nameEn: "India", users: 103_000_000, popPct: 7.2, adoption: 1 },
+  { flag: "🇮🇩", nameZh: "印度尼西亚", nameEn: "Indonesia", users: 66_000_000, popPct: 23.8, adoption: 3 },
+  { flag: "🇳🇬", nameZh: "尼日利亚", nameEn: "Nigeria", users: 47_000_000, popPct: 21.5, adoption: 2 },
+  { flag: "🇺🇸", nameZh: "美国", nameEn: "United States", users: 42_000_000, popPct: 12.4, adoption: 4 },
+  { flag: "🇻🇳", nameZh: "越南", nameEn: "Vietnam", users: 21_000_000, popPct: 21.2, adoption: 5 },
+  { flag: "🇵🇰", nameZh: "巴基斯坦", nameEn: "Pakistan", users: 20_000_000, popPct: 8.6, adoption: 8 },
+  { flag: "🇧🇷", nameZh: "巴西", nameEn: "Brazil", users: 17_500_000, popPct: 8.1, adoption: 10 },
+  { flag: "🇵🇭", nameZh: "菲律宾", nameEn: "Philippines", users: 16_000_000, popPct: 14.2, adoption: 6 },
+  { flag: "🇹🇭", nameZh: "泰国", nameEn: "Thailand", users: 12_000_000, popPct: 17.2, adoption: 12 },
+  { flag: "🇷🇺", nameZh: "俄罗斯", nameEn: "Russia", users: 11_900_000, popPct: 8.2, adoption: 15 },
 ];
 
 const RANK_MEDAL = ["🥇", "🥈", "🥉"];
@@ -49,7 +49,7 @@ export default function CryptoCountries({ limit = 10 }: { limit?: number }) {
 
       <ul className="mt-4 space-y-2">
         {rows.map((c, i) => {
-          const name = lang === "en" ? c.nameEn : c.nameId;
+          const name = lang === "en" ? c.nameEn : c.nameZh;
           const barPct = Math.max(6, (c.users / maxUsers) * 100);
           return (
             <li
@@ -84,8 +84,6 @@ export default function CryptoCountries({ limit = 10 }: { limit?: number }) {
           );
         })}
       </ul>
-
-      <p className="mt-3 text-[10px] text-[#5E6673]">{t("sourceNote")}</p>
     </div>
   );
 }

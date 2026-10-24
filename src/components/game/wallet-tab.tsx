@@ -14,15 +14,17 @@ import {
   CheckCircle2,
   Clock,
   Infinity as InfinityIcon,
+  Droplets,
+  Cpu,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { TOKEN, fmtNum, truncateAddress } from "@/lib/game-config";
+import { TOKEN, WITHDRAW, PANCAKESWAP, fmtNum, splitWithdrawal, truncateAddress } from "@/lib/game-config";
 import { api } from "@/lib/api-client";
 import { useGameStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { clearSession } from "@/lib/wallet";
-import type { RecentMine, WithdrawalItem } from "@/lib/types";
+import type { GlobalStats, RecentMine, WithdrawalItem } from "@/lib/types";
 
 export default function WalletTab() {
   const user = useGameStore((s) => s.user);
@@ -33,6 +35,7 @@ export default function WalletTab() {
   const [feedback, setFeedback] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
   const [mines, setMines] = useState<RecentMine[]>([]);
   const [withdrawals, setWithdrawals] = useState<WithdrawalItem[]>([]);
+  const [stats, setStats] = useState<GlobalStats | null>(null);
 
   const loadHistory = useCallback(async () => {
     if (!user) return;
@@ -49,6 +52,13 @@ export default function WalletTab() {
     loadHistory();
   }, [loadHistory]);
 
+  useEffect(() => {
+    api
+      .stats()
+      .then(setStats)
+      .catch(() => setStats(null));
+  }, []);
+
   const parseAmount = (raw: string): number => Number(raw.replace(/\./g, "").replace(",", "."));
 
   const handleWithdraw = useCallback(async () => {
@@ -60,8 +70,16 @@ export default function WalletTab() {
       const res = await api.withdraw(user.walletAddress, amt);
       setUser(res.user);
       setAmount("");
-      setFeedback({ type: "ok", msg: t("okWithdraw", { n: fmtNum(amt, 2, lang), sym: TOKEN.symbol }) });
+      const { net, fee } = splitWithdrawal(amt);
+      setFeedback({
+        type: "ok",
+        msg: t("okWithdraw", { n: fmtNum(net, 2, lang), fee: fmtNum(fee, 2, lang), sym: TOKEN.symbol }),
+      });
       loadHistory();
+      api
+        .stats()
+        .then(setStats)
+        .catch(() => {});
     } catch (err) {
       const e = err as Error & { errorKey?: string };
       if (e.errorKey === "insufficient") {
@@ -85,6 +103,8 @@ export default function WalletTab() {
   const validAmount = Number.isFinite(amt) && amt > 0;
   const canWithdraw = validAmount && user.balance > 0; // TANPA minimal — saldo berapapun bisa ditarik
   const contractKnown = TOKEN.contractAddress.length > 0;
+  const locale = lang === "en" ? "en-US" : "zh-CN";
+  const preview = validAmount ? splitWithdrawal(Math.min(amt, user.balance)) : null;
 
   return (
     <div className="space-y-4">
@@ -95,15 +115,20 @@ export default function WalletTab() {
         <StatCard icon={<Users className="h-4 w-4 text-[#C994F7]" />} label={t("statRef")} value={fmtNum(user.refEarnings, 2, lang)} />
       </div>
 
-      {/* Tarik ke wallet — TANPA MINIMAL */}
+      {/* Tarik ke wallet — TANPA MINIMAL + AUTO MINT */}
       <div className="rounded-2xl border border-[#20B26C]/40 bg-gradient-to-br from-[#20B26C]/8 to-[#181A20] p-5 space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <h3 className="text-sm font-bold flex items-center gap-1.5">
             <Send className="h-4 w-4 text-[#F0B90B]" /> {t("withdrawTitle", { chain: TOKEN.chainShort })}
           </h3>
-          <span className="flex items-center gap-1 rounded-full bg-[#20B26C]/15 border border-[#20B26C]/40 px-2.5 py-1 text-[9px] font-extrabold text-[#20B26C]">
-            <InfinityIcon className="h-3 w-3" /> {t("noMinBadge")}
-          </span>
+          <div className="flex items-center gap-1 shrink-0">
+            <span className="flex items-center gap-1 rounded-full bg-[#C994F7]/15 border border-[#C994F7]/40 px-2 py-1 text-[9px] font-extrabold text-[#C994F7]">
+              <Cpu className="h-3 w-3" /> {t("autoMintBadge")}
+            </span>
+            <span className="flex items-center gap-1 rounded-full bg-[#20B26C]/15 border border-[#20B26C]/40 px-2 py-1 text-[9px] font-extrabold text-[#20B26C]">
+              <InfinityIcon className="h-3 w-3" /> {t("noMinBadge")}
+            </span>
+          </div>
         </div>
         <p className="text-xs text-[#848E9C]">
           {t("noMinNote", { addr: truncateAddress(user.walletAddress) })}
@@ -124,6 +149,25 @@ export default function WalletTab() {
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : t("withdrawBtn")}
           </Button>
         </div>
+
+        {/* Preview pecahan: net → wallet, fee → PancakeSwap */}
+        {preview && (
+          <div className="rounded-xl border border-[#2B3139] bg-[#0B0E11] px-3.5 py-2.5 space-y-1.5 text-[11px]">
+            <div className="flex items-center justify-between">
+              <span className="text-[#848E9C]">{t("receiveLabel")}</span>
+              <span className="font-bold tabular-nums text-[#20B26C]">
+                {fmtNum(preview.net, 2, lang)} {TOKEN.symbol}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[#848E9C]">{t("feeLabel", { p: WITHDRAW.feePct })}</span>
+              <span className="font-bold tabular-nums text-[#F0B90B]">
+                -{fmtNum(preview.fee, 2, lang)} {TOKEN.symbol}
+              </span>
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center justify-between text-[11px]">
           <span className="text-[#848E9C]">
             {t("statBalance")}: <span className="font-bold text-[#EAECEF]">{fmtNum(user.balance, 2, lang)} {TOKEN.symbol}</span>
@@ -151,6 +195,32 @@ export default function WalletTab() {
             {feedback.msg}
           </div>
         )}
+      </div>
+
+      {/* Likuiditas PancakeSwap dari fee penarikan */}
+      <div className="rounded-2xl border border-[#E8C4F7]/25 bg-gradient-to-br from-[#A855F7]/8 to-[#181A20] p-5">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold flex items-center gap-1.5">
+            <Droplets className="h-4 w-4 text-[#C994F7]" /> {t("liquidityTitle")}
+          </h3>
+          <span className="rounded-full bg-[#A855F7]/15 border border-[#A855F7]/40 px-2 py-0.5 text-[9px] font-extrabold text-[#C994F7]">
+            {PANCAKESWAP.dex}
+          </span>
+        </div>
+        <p className="mt-0.5 text-xs text-[#848E9C]">{t("liquiditySub")}</p>
+        <div className="mt-3 flex items-end justify-between rounded-xl bg-[#0B0E11] border border-[#2B3139] px-4 py-3">
+          <div>
+            <p className="text-xl font-extrabold tabular-nums text-[#C994F7]">
+              {stats ? `+${fmtNum(stats.totalLiquidityAdded, 2, lang)}` : "—"} <span className="text-xs font-semibold">{TOKEN.symbol}</span>
+            </p>
+            <p className="text-[10px] text-[#848E9C]">{t("feeLabel", { p: stats?.withdrawFeePct ?? WITHDRAW.feePct })}</p>
+          </div>
+          <div className="text-right text-[10px] text-[#848E9C] leading-relaxed">
+            <p className="font-mono">AGENMINER / BNB</p>
+            <p>{TOKEN.chainShort} Mainnet</p>
+          </div>
+        </div>
+        {!stats?.totalLiquidityAdded && <p className="mt-2 text-[11px] text-[#848E9C]">{t("liquidityEmpty")}</p>}
       </div>
 
       {/* Info kontrak */}
@@ -205,15 +275,22 @@ export default function WalletTab() {
             {withdrawals.map((w) => (
               <li key={w.id} className="flex items-center justify-between rounded-xl bg-[#0B0E11] border border-[#2B3139] px-3.5 py-2.5">
                 <div>
-                  <p className="text-sm font-bold tabular-nums">-{fmtNum(w.amount, 2, lang)} {TOKEN.symbol}</p>
+                  <p className="text-sm font-bold tabular-nums">
+                    -{fmtNum(w.amount, 2, lang)} {TOKEN.symbol}
+                    {typeof w.fee === "number" && w.fee > 0 && (
+                      <span className="ml-2 text-[10px] font-semibold text-[#C994F7]">
+                        💧 {t("feeAmountLabel")} {fmtNum(w.fee, 2, lang)} → PCS
+                      </span>
+                    )}
+                  </p>
                   <p className="text-[10px] text-[#848E9C]">
-                    {new Date(w.createdAt).toLocaleString(lang === "en" ? "en-US" : "id-ID")}
+                    {new Date(w.createdAt).toLocaleString(locale)}
                   </p>
                 </div>
                 <span
-                  className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                  className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold shrink-0 ${
                     w.status === "PROCESSED"
-                      ? "bg-[#20B26C]/15 text-[#20B26C]"
+                      ? "bg-[#C994F7]/15 text-[#C994F7]"
                       : w.status === "REJECTED"
                         ? "bg-[#F6465D]/15 text-[#F6465D]"
                         : "bg-[#F0B90B]/15 text-[#F0B90B]"
@@ -224,7 +301,7 @@ export default function WalletTab() {
                   ) : (
                     <Clock className="h-3 w-3" />
                   )}
-                  {w.status === "PENDING" ? t("wPending") : w.status === "PROCESSED" ? t("wSent") : t("wRejected")}
+                  {w.status === "PENDING" ? t("wPending") : w.status === "PROCESSED" ? t("wMinted") : w.status === "REJECTED" ? t("wRejected") : t("wSent")}
                 </span>
               </li>
             ))}
@@ -248,7 +325,7 @@ export default function WalletTab() {
                   <span className="text-xs font-extrabold text-[#20B26C] tabular-nums shrink-0">+{fmtNum(m.reward, 2, lang)}</span>
                 </div>
                 <p className="mt-1 text-[10px] text-[#848E9C]">
-                  {t("score", { n: m.score })} • {new Date(m.createdAt).toLocaleString(lang === "en" ? "en-US" : "id-ID")}
+                  {t("score", { n: m.score })} • {new Date(m.createdAt).toLocaleString(locale)}
                 </p>
               </li>
             ))}

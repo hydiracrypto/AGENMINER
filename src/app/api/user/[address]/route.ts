@@ -12,12 +12,12 @@ export async function GET(
     const { address: rawAddr } = await params;
     const address = rawAddr.trim().toLowerCase();
     if (!isValidEvmAddress(address)) {
-      return NextResponse.json({ error: "Alamat tidak valid" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid wallet address" }, { status: 400 });
     }
 
     const user = await db.user.findUnique({ where: { walletAddress: address } });
     if (!user) {
-      return NextResponse.json({ error: "Penambang tidak ditemukan" }, { status: 404 });
+      return NextResponse.json({ error: "Miner not found" }, { status: 404 });
     }
 
     const [recentMines, withdrawals] = await Promise.all([

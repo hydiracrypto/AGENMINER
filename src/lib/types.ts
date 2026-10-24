@@ -36,9 +36,13 @@ export interface RecentMine {
 export interface WithdrawalItem {
   id: string;
   amount: number;
+  fee: number;
+  netAmount: number;
   status: string;
   txHash: string | null;
+  mintMode?: string;
   createdAt: string;
+  processedAt?: string | null;
 }
 
 export interface LeaderboardRow {
@@ -62,4 +66,8 @@ export interface GlobalStats {
   tokenName: string;
   tokenSymbol: string;
   contractAddress: string;
+  // Likuiditas PancakeSwap dari fee penarikan
+  totalLiquidityAdded: number;
+  withdrawFeePct: number;
+  withdrawDex: string;
 }

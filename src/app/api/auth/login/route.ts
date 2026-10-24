@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
     const refCode = String(body?.refCode ?? "").trim().toUpperCase();
 
     if (!isValidEvmAddress(address)) {
-      return NextResponse.json({ error: "Alamat wallet tidak valid" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid wallet address" }, { status: 400 });
     }
 
     // Cari user existing
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       }
     }
     if (!created) {
-      return NextResponse.json({ error: "Gagal membuat akun, coba lagi" }, { status: 500 });
+      return NextResponse.json({ error: "Failed to create account, try again" }, { status: 500 });
     }
 
     // Proses referral: beri bonus ke pengundang

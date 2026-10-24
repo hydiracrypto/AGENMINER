@@ -13,12 +13,12 @@ export async function POST(req: NextRequest) {
     const action = String(body?.action ?? "");
 
     if (!isValidEvmAddress(address)) {
-      return NextResponse.json({ error: "Alamat wallet tidak valid", errorKey: "invalid_address" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid wallet address", errorKey: "invalid_address" }, { status: 400 });
     }
 
     const user = await db.user.findUnique({ where: { walletAddress: address } });
     if (!user) {
-      return NextResponse.json({ error: "Akun tidak ditemukan", errorKey: "account_missing" }, { status: 404 });
+      return NextResponse.json({ error: "Account not found", errorKey: "account_missing" }, { status: 404 });
     }
 
     // ── UPGRADE: tingkatkan mining power dengan membakar AGENMINER ──
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       const cost = upgradeCost(user.miningPower);
       if (user.balance < cost) {
         return NextResponse.json(
-          { error: `Saldo kurang. Butuh ${cost.toLocaleString("id-ID")} ${TOKEN_SYMBOL} untuk upgrade.`, errorKey: "insufficient_upgrade" },
+          { error: `Insufficient balance. Need ${cost} ${TOKEN_SYMBOL} to upgrade.`, errorKey: "insufficient_upgrade" },
           { status: 400 }
         );
       }
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
       });
       return NextResponse.json({
         user: toPublicUser(updated),
-        message: `⚡ Mining Power naik ke Lv.${updated.miningPower}!`,
+        message: `⚡ Mining Power up to Lv.${updated.miningPower}!`,
         spent: cost,
       });
     }
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     if (action === "checkin") {
       const today = todayStr();
       if (user.lastCheckin === today) {
-        return NextResponse.json({ error: "Kamu sudah check-in hari ini. Kembali besok!", errorKey: "already_checkin" }, { status: 400 });
+        return NextResponse.json({ error: "You already checked in today. Come back tomorrow!", errorKey: "already_checkin" }, { status: 400 });
       }
       const newStreak = nextStreak(user);
       const reward = computeCheckinReward(user.miningPower, newStreak);
@@ -66,13 +66,13 @@ export async function POST(req: NextRequest) {
       });
       return NextResponse.json({
         user: toPublicUser(updated),
-        message: `🎁 Check-in hari ${newStreak}: +${reward.toLocaleString("id-ID")} ${TOKEN_SYMBOL}!`,
+        message: `🎁 Check-in day ${newStreak}: +${reward} ${TOKEN_SYMBOL}!`,
         reward,
         streak: newStreak,
       });
     }
 
-    return NextResponse.json({ error: "Aksi tidak dikenal" }, { status: 400 });
+    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   } catch (err) {
     console.error("[boost]", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

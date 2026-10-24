@@ -12,21 +12,21 @@ export interface MiningVerdict {
   response: string; // respons singkat mining engine
 }
 
-const SYSTEM_PROMPT_BASE = `Kamu adalah "AGENTIC MINER AI" — mesin penambangan token AGENMINER di game mining di BNB Smart Chain.
-Tugas: evaluasi "prompt penambangan" yang dikirim penambang, lalu hasilkan narasi hasil tambang yang seru.
+const SYSTEM_PROMPT_BASE = `You are "AGENTIC MINER AI" — the token mining engine of the AGENMINER mining game on BNB Smart Chain.
+Task: evaluate the "mining prompt" submitted by a miner, then produce an exciting mining-result narration.
 
-Kriteria skor (0-100):
-- Kreativitas & keunikan imajinasi
-- Relevansi ke topik crypto / AI / mining / teknologi / blockchain
+Scoring criteria (0-100):
+- Creativity & uniqueness of imagination
+- Relevance to crypto / AI / mining / technology / blockchain topics
 - Effort & detail
-- Prompt sangat pendek, generik, atau asal ketik → skor rendah (10-40)
-- Prompt kreatif, detail, imajinatif → skor tinggi (70-100)
+- Very short, generic, or lazy prompts → low score (10-40)
+- Creative, detailed, imaginative prompts → high score (70-100)
 
-PENTING: Balas HANYA dengan JSON valid, TANPA teks lain, TANPA markdown:
-{"score": <integer 0-100>, "summary": "<1 kalimat seru tentang apa yang berhasil ditambang dari prompt user>", "response": "<respons mining engine maksimal 150 karakter, penuh semangat, sebutkan hash/blok/gigahash untuk keseruan>"}`;
+IMPORTANT: Reply ONLY with valid JSON, NO other text, NO markdown:
+{"score": <integer 0-100>, "summary": "<1 exciting sentence about what was successfully mined from the user's prompt>", "response": "<mining engine response, max 150 chars, energetic, mention hashes/blocks/gigahash for fun>"}`;
 
-const LANG_INSTRUCTION: Record<"id" | "en", string> = {
-  id: "Tulis summary dan response dalam BAHASA INDONESIA.",
+const LANG_INSTRUCTION: Record<"zh" | "en", string> = {
+  zh: "用简体中文撰写 summary 和 response。",
   en: "Write summary and response in ENGLISH.",
 };
 
@@ -56,7 +56,7 @@ function extractJson(raw: string): MiningVerdict | null {
 }
 
 /** Heuristik cadangan kalau AI gagal dipanggil */
-function fallbackVerdict(prompt: string, lang: "id" | "en"): MiningVerdict {
+function fallbackVerdict(prompt: string, lang: "zh" | "en"): MiningVerdict {
   const len = prompt.trim().length;
   const words = prompt.trim().split(/\s+/).length;
   let score = 30;
@@ -65,7 +65,7 @@ function fallbackVerdict(prompt: string, lang: "id" | "en"): MiningVerdict {
   if (words > 8) score += 10;
   if (words > 14) score += 10;
   const lower = prompt.toLowerCase();
-  if (/(ai|crypto|token|blockchain|mining|bnb|chain|neural|quantum)/.test(lower)) score += 10;
+  if (/(ai|crypto|token|blockchain|mining|bnb|chain|neural|quantum|挖|矿)/.test(lower)) score += 10;
   if (lang === "en") {
     return {
       score: clampScore(score),
@@ -75,17 +75,17 @@ function fallbackVerdict(prompt: string, lang: "id" | "en"): MiningVerdict {
   }
   return {
     score: clampScore(score),
-    summary: "Drill neural berhasil memecah blok — kristal AGENMINER tersimpan aman di dompet Anda!",
-    response: "⛏️ Hashrate stabil, blok terkunci. Lanjutkan penambangan, miner!",
+    summary: "神经钻头成功击穿区块 — AGENMINER 晶体已安全存入你的钱包！",
+    response: "⛏️ 算力稳定，区块已锁定。继续挖矿，矿工！",
   };
 }
 
 /**
  * Evaluasi prompt penambangan via AI.
  * Selalu mengembalikan verdict (fallback heuristik bila AI error).
- * Narasi mengikuti bahasa user: "id" (Indonesia) atau "en" (English).
+ * Narasi mengikuti bahasa user: "zh" (中文) atau "en" (English).
  */
-export async function evaluateMiningPrompt(prompt: string, lang: "id" | "en" = "id"): Promise<MiningVerdict> {
+export async function evaluateMiningPrompt(prompt: string, lang: "zh" | "en" = "zh"): Promise<MiningVerdict> {
   try {
     const zai = await ZAI.create();
     const completionPromise = zai.chat.completions.create({

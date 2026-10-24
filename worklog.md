@@ -39,3 +39,30 @@ Work Log:
 Stage Summary:
 - 4 fitur baru selesai & terverifikasi: (1) bahasa Inggris + toggle ID⇄EN persist, (2) bagian Negara Pengguna Kripto Terbanyak, (3) logo AGENTIC MINER di login/reward/favicon, (4) penarikan TANPA minimal + tombol MAX.
 - Screenshot bukti di download/: screenshot-login-v2.png, screenshot-login-en.png, screenshot-mine-en.png, screenshot-wallet-en.png, screenshot-withdraw-1token.png, screenshot-rank-en-countries.png, screenshot-reward-en.png, screenshot-mine-id.png.
+
+---
+Task ID: 3
+Agent: Z.ai (main agent)
+Task: (1) Hapus sumber "Triple-A & Chainalysis Global Adoption 2024 (estimasi)", (2) hapus bahasa Indonesia → ganti bahasa China (default) + English saja, (3) penarikan otomatis mint ke wallet BNB Chain dengan fee masuk likuiditas DEX PancakeSwap.
+
+Work Log:
+- i18n.ts direwrite total: Lang = "zh" | "en", default 中文 (zh), ~150 kunci diterjemahkan penuh ke Mandarin; persist version 2 + migrate (nilai "id" lama → "zh"); safeLang() mencegah crash dari localStorage lama; key sourceNote dihapus.
+- crypto-countries.tsx: baris <p> sumber Triple-A & Chainalysis DIHAPUS dari kartu; nameId → nameZh (印度/印度尼西亚/尼日利亚/美国/越南/巴基斯坦/巴西/菲律宾/泰国/俄罗斯).
+- language-toggle.tsx: opsi 🇨🇳 中文 ⇄ 🇬🇧 EN (pill + compact), aria-label bilingual.
+- game-config.ts: WITHDRAW {autoMint, feePct:10}, PANCAKESWAP {V2 router/factory BSC, pair placeholder}, splitWithdrawal() net/fee; fmtNum locale zh-CN/en-US; PROMPT_EXAMPLES_ZH (6 prompt China) menggantikan versi ID.
+- Prisma: Withdrawal +fee/+netAmount/+mintMode/processedAt; model baru LiquidityLog (withdrawalId, amount, dex, pairAddress) — db:push sukses.
+- src/lib/onchain-mint.ts (baru): engine auto-mint — mode "onchain" (ethers v6.13.5, kontrak mintWithdrawal + MINTER_KEY env) / "simulated" sebelum kontrak aktif; withdrawMode() info utk API.
+- POST /api/withdraw: TANPA minimal, langsung status PROCESSED (MINTED) instan; pecah net 90% → wallet, fee 10% → LiquidityLog (PancakeSwap); kembalikan breakdown {fee, netAmount, liquidity, mint}.
+- GET /api/stats: + totalLiquidityAdded (aggregate LiquidityLog), withdrawFeePct, withdrawDex; types.ts diperbarui.
+- Semua API routes (mine/boost/login/user) pesan error hardcoded Indonesia → Inggris netral (client tetap pakai errorKey + t()).
+- ai-engine.ts: system prompt EN + LANG_INSTRUCTION zh ("用简体中文撰写...")/en; fallback verdict China/Inggris.
+- wallet-tab.tsx: preview pecahan live (钱包到账 45 / 手续费 10% → PancakeSwap -5), badge AUTO MINT + NO MINIMUM, kartu PancakeSwap Liquidity (+akumulasi fee), riwayat status 已铸造/MINTED + baris 💧 fee → PCS, locale zh-CN.
+- layout.tsx: html lang="zh", metadata bilingual China/Inggris.
+- contracts/AgenticMiner.sol direwrite: tanpa initial mint, MAX_SUPPLY 100M hard cap, mintWithdrawal(to, amount, feeBps) → net ke user + fee ke liquidityPool (pair PCS), mintOwner() alokasi tim/marketing/LP, setLiquidityPool(), event WithdrawalMinted; DEPLOY_GUIDE.md diperbarui (alur auto-mint, set pair PCS, MINTER_KEY env).
+- Restart dev server (Prisma client baru ter-load), /api/stats 200.
+- Verifikasi agent-browser E2E: login screen 中文 default OK (总供应量/挖矿池/加密用户最多的国家), sumber Triple-A/Chainalysis/Sumber/来源 = false di seluruh halaman; login demo OK; mining prompt China OK (+80, skor 85, narasi AI China); wallet 中文 OK; preview pecahan 50 → 45/-5 OK; withdraw OK → saldo 30, pesan "已自动铸造 45 AGENMINER...手续费 5 已注入 PancakeSwap 流动性", kartu likuiditas +5, riwayat "-50 💧 手续费 5 → PCS 已铸造"; toggle EN OK (Withdraw to BNB Chain Wallet / Fee 10% → PancakeSwap liquidity / MINTED / PancakeSwap Liquidity +5); Rank 10 negara China OK; Boost/Friends EN OK; dev.log bersih tanpa error, lint bersih.
+- Screenshot bukti di download/: v3-login-zh.png, v3-countries-no-source.png, v3-game-zh.png (mining), v3-mining-zh.png (reward), v3-withdraw-preview.png, v3-withdraw-done-zh.png, v3-wallet-en.png, v3-rank-zh-countries.png, v3-boost-en.png, v3-friends-en.png.
+
+Stage Summary:
+- 3 permintaan selesai & terverifikasi: (1) sumber data dihapus dari kartu negara, (2) bahasa sekarang hanya 中文 (default) + EN — Indonesia dihapus total dari UI/API/AI, (3) penarikan otomatis mint instan ke wallet BNB Chain dengan fee 10% tercatat masuk likuiditas PancakeSwap V2 (LiquidityLog + kartu akumulasi di Wallet).
+- Kontrak baru siap deploy on-demand mint; setelah deploy isi contractAddress + PANCAKESWAP.pair + env MINTER_KEY → mode onchain aktif otomatis.

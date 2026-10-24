@@ -10,27 +10,27 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const address = String(body?.address ?? "").trim().toLowerCase();
     const prompt = String(body?.prompt ?? "").trim();
-    const lang: "id" | "en" = body?.lang === "en" ? "en" : "id";
+    const lang: "zh" | "en" = body?.lang === "en" ? "en" : "zh";
 
     if (!isValidEvmAddress(address)) {
-      return NextResponse.json({ error: "Alamat wallet tidak valid", errorKey: "invalid_address" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid wallet address", errorKey: "invalid_address" }, { status: 400 });
     }
     if (prompt.length < GAME.minPromptLen) {
       return NextResponse.json(
-        { error: `Prompt terlalu pendek. Minimal ${GAME.minPromptLen} karakter.`, errorKey: "prompt_short" },
+        { error: `Prompt too short. Minimum ${GAME.minPromptLen} characters.`, errorKey: "prompt_short" },
         { status: 400 }
       );
     }
     if (prompt.length > GAME.maxPromptLen) {
       return NextResponse.json(
-        { error: `Prompt terlalu panjang. Maksimal ${GAME.maxPromptLen} karakter.`, errorKey: "prompt_long" },
+        { error: `Prompt too long. Maximum ${GAME.maxPromptLen} characters.`, errorKey: "prompt_long" },
         { status: 400 }
       );
     }
 
     const user = await db.user.findUnique({ where: { walletAddress: address } });
     if (!user) {
-      return NextResponse.json({ error: "Akun tidak ditemukan, silakan login ulang", errorKey: "account_missing" }, { status: 404 });
+      return NextResponse.json({ error: "Account not found, please sign in again", errorKey: "account_missing" }, { status: 404 });
     }
 
     // ── Cek cooldown ──
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
       const readyAt = user.lastMineAt.getTime() + GAME.cooldownMs;
       if (now < readyAt) {
         return NextResponse.json(
-          { error: "Rig masih mendinginkan. Tunggu sebentar!", errorKey: "cooldown", remainingMs: readyAt - now },
+          { error: "Rig is still cooling. Wait a moment!", errorKey: "cooldown", remainingMs: readyAt - now },
           { status: 429 }
         );
       }
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     });
     if (recent.some((m) => m.prompt.toLowerCase().replace(/\s+/g, " ") === normalized)) {
       return NextResponse.json(
-        { error: "Prompt ini sudah kamu pakai baru-baru ini. Coba ide baru yang lebih kreatif!", errorKey: "duplicate_prompt" },
+        { error: "You used this prompt recently. Try a fresher, more creative idea!", errorKey: "duplicate_prompt" },
         { status: 400 }
       );
     }
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
     const globalMined = agg._sum.totalMined ?? 0;
     if (globalMined >= TOKEN.miningPool) {
       return NextResponse.json(
-        { error: "Pool mining sudah habis!", errorKey: "pool_empty" },
+        { error: "Mining pool is depleted!", errorKey: "pool_empty" },
         { status: 409 }
       );
     }
@@ -131,6 +131,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("[mine]", err);
-    return NextResponse.json({ error: "Rig mengalami gangguan. Coba lagi." }, { status: 500 });
+    return NextResponse.json({ error: "Mining rig glitch. Try again." }, { status: 500 });
   }
 }

@@ -22,6 +22,30 @@ export const TOKEN = {
   contractAddress: "",
 } as const;
 
+// ============================================
+// PENARIKAN OTOMATIS — AUTO MINT + FEE LIKUIDITAS PANCAKESWAP
+// ============================================
+export const WITHDRAW = {
+  autoMint: true, // penarikan langsung di-mint otomatis ke wallet BNB Chain user
+  feePct: 10, // 10% fee penarikan → masuk likuiditas DEX PancakeSwap
+} as const;
+
+/** PancakeSwap (BNB Smart Chain / chain 56) */
+export const PANCAKESWAP = {
+  dex: "PancakeSwap V2",
+  router: "0x10ED43C718714eb63d5aA57B78B54704E256024E",
+  factory: "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73",
+  // Pair AGENMINER/BNB — isi setelah pair dibuat (lihat contracts/DEPLOY_GUIDE.md)
+  pair: "",
+} as const;
+
+/** Pecahkan jumlah penarikan → net ke wallet + fee ke likuiditas PancakeSwap */
+export function splitWithdrawal(amount: number): { net: number; fee: number } {
+  const fee = Math.round(amount * WITHDRAW.feePct) / 100; // bulatkan ke 2 desimal
+  const net = Math.round((amount - fee) * 100) / 100;
+  return { net, fee };
+}
+
 export const GAME = {
   cooldownMs: 60_000, // jeda antar mining: 60 detik
   minPromptLen: 15,
@@ -77,20 +101,20 @@ export function truncateAddress(addr: string): string {
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 }
 
-export function fmtNum(n: number, decimals = 2, lang: "id" | "en" = "id"): string {
-  return new Intl.NumberFormat(lang === "en" ? "en-US" : "id-ID", {
+export function fmtNum(n: number, decimals = 2, lang: "zh" | "en" = "zh"): string {
+  return new Intl.NumberFormat(lang === "en" ? "en-US" : "zh-CN", {
     minimumFractionDigits: 0,
     maximumFractionDigits: decimals,
   }).format(n);
 }
 
-const PROMPT_EXAMPLES_ID: string[] = [
-  "Tambang blok baru dengan cepat quantum AI dari pusat galaksi BNB Chain!",
-  "Selami kedalaman mempool dan panen transaksi emas yang tertunda sejak 2021",
-  "Hidupkan reaktor neural network untuk mengkristalkan hash gas menjadi AGENMINER",
-  "Latih 10.000 agent AI untuk menambang payung crypto di awan kumulus BNB",
-  "Ekstrak likuiditas dari lubang hitam Polygon dengan pengebor blurple cair",
-  "Nyalakan GPU berlian dan gali smart contract legendaris di blockchain beku",
+const PROMPT_EXAMPLES_ZH: string[] = [
+  "用量子AI的超高速从BNB Chain银河中心挖出一个全新区块！",
+  "潜入内存池深处，收割自2021年以来等待的黄金交易",
+  "点燃神经网络反应堆，把Gas哈希结晶成AGENMINER",
+  "训练一万名AI智能体在BNB积雨云上开采加密雨伞",
+  "用液态钻头从黑洞中抽取流动性，直通BNB星云",
+  "启动钻石GPU，在冻结的区块链中挖掘传奇智能合约",
 ];
 
 const PROMPT_EXAMPLES_EN: string[] = [
@@ -102,8 +126,8 @@ const PROMPT_EXAMPLES_EN: string[] = [
   "Fire up diamond GPUs and dig legendary smart contracts from frozen blockchain",
 ];
 
-export function randomExamples(count = 3, lang: "id" | "en" = "id"): string[] {
-  const pool = lang === "en" ? PROMPT_EXAMPLES_EN : PROMPT_EXAMPLES_ID;
+export function randomExamples(count = 3, lang: "zh" | "en" = "zh"): string[] {
+  const pool = lang === "en" ? PROMPT_EXAMPLES_EN : PROMPT_EXAMPLES_ZH;
   const shuffled = [...pool].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, count);
 }

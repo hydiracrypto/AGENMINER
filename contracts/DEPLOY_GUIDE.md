@@ -1,9 +1,28 @@
 # 🚀 Panduan Deploy Token AGENMINER di BNB Smart Chain Mainnet
 
-Token **AGENTIC MINER (AGENMINER)** — BEP-20, suplai tetap **100.000.000**, desimal 18.
+Token **AGENTIC MINER (AGENMINER)** — BEP-20, **hard cap 100.000.000**, desimal 18.
 
 > ⚠️ **Peringatan:** Deploy mainnet menggunakan **BNB asli** untuk gas. Pastikan kamu paham risikonya (DYOR).
 > Biaya deploy kontrak sederhana ini kira-kira **0.01 – 0.05 BNB** tergantung gas.
+
+---
+
+## Model Auto-Mint Penarikan (penting dipahami dulu)
+
+Kontrak ini **tidak mencetak 100 juta saat deploy**. Sebaliknya, suplai dicetak **on-demand** oleh backend game (owner):
+
+1. Pemain menarik game-balance AGENMINER dari aplikasi.
+2. Backend memanggil kontrak:
+   ```solidity
+   mintWithdrawal(walletPemain, totalAmountWei, feeBps)
+   // feeBps = 1000 (10%) → fee di-mint ke liquidityPool (pair PancakeSwap)
+   // sisanya (net 90%) di-mint langsung ke wallet pemain
+   ```
+3. **Fee penarikan otomatis masuk likuiditas DEX PancakeSwap** karena di-mint
+   langsung ke address pair AGENMINER/BNB. Pasangkan dengan BNB (addLiquidity)
+   atau panggil `pair.sync()` agar reserve ter-update.
+4. Total suplai **tidak pernah** bisa melebihi 100.000.000 (`MAX_SUPPLY`) —
+   dicek matematis di setiap mint.
 
 ---
 
@@ -25,26 +44,35 @@ Token **AGENTIC MINER (AGENMINER)** — BEP-20, suplai tetap **100.000.000**, de
    - Tab **Deploy & Run** → Environment: **Injected Provider — MetaMask** (atau Binance Wallet).
    - Pastikan jaringan yang tampil: **BNB Smart Chain 56**.
    - Klik **Deploy** → konfirmasi di wallet → tunggu konfirmasi transaksi.
+   - Tidak perlu distribusi suplai awal — kontrak mulai dari totalSupply = 0.
 
 5. **Verifikasi kontrak (penting untuk kepercayaan komunitas)**
    - Salin alamat kontrak hasil deploy.
    - Buka `https://bscscan.com/address/<ALAMAT_KONTRAK>#code` → **Verify & Publish**.
-   - Setting: compiler `0.8.24`, license MIT, license MIT, paste kode `AgenticMiner.sol` (single file, tanpa import).
+   - Setting: compiler `0.8.24`, license MIT, paste kode `AgenticMiner.sol` (single file, tanpa import).
 
-6. **Distribusi suplai awal** (saran tokenomics)
-   | Alokasi | Jumlah | Tujuan |
+6. **Set pair PancakeSwap (untuk fee likuiditas)**
+   - Buat pair **AGENMINER/BNB** di PancakeSwap V2 Factory:
+     `0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73` (atau pakai Router
+     `0x10ED43C718714eb63d5aA57B78B54704E256024E` → Add Liquidity sekali
+     untuk membuat pair).
+   - Panggil `setLiquidityPool(<alamat pair>)` dari wallet owner.
+   - Seed likuiditas awal (saran): `mintOwner(walletTim, 10_000_000e18)` untuk
+     alokasi Likuiditas DEX 10% → addLiquidity AGENMINER/BNB di PancakeSwap.
+
+7. **Alokasi tokenomics** (via `mintOwner`, total tetap ≤ 100M)
+   | Alokasi | Jumlah | Cara |
    |---|---|---|
-   | Pool Mining | 70.000.000 | Kirim ke wallet "hot wallet" backend game |
-   | Tim & Treasury | 10.000.000 | Wallet tim (vesting disarankan) |
-   | Marketing | 10.000.000 | Kampanye, listing, KOL |
-   | Likuiditas DEX | 10.000.000 | Pair AGENMINER/BNB di PancakeSwap |
-
-7. **Tambah likuiditas** (opsional)
-   - PancakeSwap → Add Liquidity → pair `AGENMINER/BNB`.
+   | Pool Mining | 70.000.000 | Dicetak otomatis via `mintWithdrawal` saat pemain menarik |
+   | Tim & Treasury | 10.000.000 | `mintOwner(walletTim, ...)` |
+   | Marketing | 10.000.000 | `mintOwner(walletMarketing, ...)` |
+   | Likuiditas DEX | 10.000.000 | `mintOwner(walletLP, ...)` → addLiquidity PancakeSwap |
 
 8. **Hubungkan ke aplikasi game ini**
-   - Edit `src/lib/game-config.ts` → isi `contractAddress` dengan alamat kontrak.
-   - Restart dev server. Badge "SEGERA DIUMUMKAN" di tab Wallet otomatis berganti jadi link BscScan.
+   - Edit `src/lib/game-config.ts` → isi `contractAddress` dan `PANCAKESWAP.pair`.
+   - Set env `MINTER_KEY` (private key wallet owner backend) di environment server.
+   - Restart dev server. Penarikan pemain kini **auto-mint on-chain** (mode "onchain").
+     Sebelum kontrak diisi, sistem berjalan mode "simulated" (mint tercatat instan di DB).
 
 ---
 
@@ -101,12 +129,19 @@ npx hardhat run scripts/deploy.js --network bscMainnet
 
 ## Integrasi Backend Game (setelah kontrak aktif)
 
-1. Backend game memegang **hot wallet** (owner) berisi pool mining 70 juta.
-2. Permintaan penarikan pemain (status `PENDING` di tabel `Withdrawal`) diproses manual / oleh job:
-   - Kumpulkan penerima + jumlah (mis. per jam / per hari).
-   - Panggil `airdrop(recipients[], amounts[])` dari hot wallet — 1 transaksi untuk ≤200 penerima.
-   - Simpan `txHash` dan ubah status menjadi `PROCESSED`.
-3. Jumlah amount yang dikirim on-chain harus dikonversi ke 18 desimal:
-   `amount(18 des) = amountGame × 10^18`
+1. Isi env server:
+   ```
+   MINTER_KEY=<private key wallet owner>   # dipakai src/lib/onchain-mint.ts
+   ```
+   dan `TOKEN.contractAddress` di `src/lib/game-config.ts`.
+2. Penarikan pemain otomatis diproses oleh `POST /api/withdraw`:
+   - Pecahan otomatis: **90% net** → mint ke wallet pemain, **10% fee** → mint ke pair PancakeSwap (likuiditas).
+   - Setiap fee tercatat di tabel `LiquidityLog` untuk transparansi di tab Wallet.
+   - Status penarikan langsung `PROCESSED` (MINTED) — tidak ada antrean manual.
+3. Fallback tanpa kontrak: sistem tetap jalan mode **simulated** (instan),
+   lalu semua penarikan historis bisa dieksekusi on-chain setelah kontrak aktif.
+4. Konversi jumlah ke 18 desimal dilakukan otomatis oleh `onchain-mint.ts`
+   (`ethers.parseUnits(..., 18)`), feeBps = `WITHDRAW.feePct × 100` (10% → 1000).
 
-> 💡 Keamanan: gunakan wallet khusus backend, aktifkan whitelist, dan batasi saldo hot wallet.
+> 💡 Keamanan: gunakan wallet khusus backend (bukan wallet pribadi), aktifkan
+> whitelist, batasi saldo, dan simpan `MINTER_KEY` hanya di environment server.

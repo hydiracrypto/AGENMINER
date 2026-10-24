@@ -43,7 +43,7 @@ export const api = {
       `/api/user/${address}`
     ),
 
-  mine: (address: string, prompt: string, lang: "id" | "en" = "id") =>
+  mine: (address: string, prompt: string, lang: "zh" | "en" = "zh") =>
     jsonFetch<MineResult & { refCommission?: number }>("/api/mine", {
       method: "POST",
       headers: JSON_HEADERS,

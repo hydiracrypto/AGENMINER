@@ -1,15 +1,16 @@
-// GET /api/stats — Statistik global token & mining
+// GET /api/stats — Statistik global token, mining & likuiditas PancakeSwap
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { TOKEN } from "@/lib/game-config";
+import { TOKEN, WITHDRAW, PANCAKESWAP } from "@/lib/game-config";
 import type { GlobalStats } from "@/lib/types";
 
 export async function GET() {
   try {
-    const [minedAgg, minerCount, mineCount] = await Promise.all([
+    const [minedAgg, minerCount, mineCount, liqAgg] = await Promise.all([
       db.user.aggregate({ _sum: { totalMined: true } }),
       db.user.count(),
       db.mineLog.count(),
+      db.liquidityLog.aggregate({ _sum: { amount: true } }),
     ]);
 
     const totalMined = minedAgg._sum.totalMined ?? 0;
@@ -24,6 +25,9 @@ export async function GET() {
       tokenName: TOKEN.name,
       tokenSymbol: TOKEN.symbol,
       contractAddress: TOKEN.contractAddress,
+      totalLiquidityAdded: Math.round((liqAgg._sum.amount ?? 0) * 100) / 100,
+      withdrawFeePct: WITHDRAW.feePct,
+      withdrawDex: PANCAKESWAP.dex,
     };
     return NextResponse.json(stats);
   } catch (err) {

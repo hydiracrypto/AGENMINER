@@ -51,15 +51,34 @@ model MineLog {
 }
 
 model Withdrawal {
-  id        String   @id @default(cuid())
-  userId    String
-  amount    Float // jumlah AGENMINER ditarik
-  status    String   @default("PENDING") // PENDING | PROCESSED | REJECTED
-  txHash    String? // hash tx distribusi on-chain (diisi saat diproses)
-  createdAt DateTime @default(now())
+  id          String    @id @default(cuid())
+  userId      String
+  amount      Float // total AGENMINER ditarik dari saldo
+  fee         Float     @default(0) // bagian fee → likuiditas PancakeSwap
+  netAmount   Float     @default(0) // jumlah di-mint otomatis ke wallet user
+  status      String    @default("PENDING") // PENDING | PROCESSED (MINTED) | REJECTED
+  txHash      String? // hash tx mint on-chain (diisi saat kontrak aktif)
+  mintMode    String    @default("AUTO") // AUTO = mint otomatis oleh backend
+  createdAt   DateTime  @default(now())
   processedAt DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  liquidityLogs LiquidityLog[]
 
   @@index([userId, createdAt])
+}
+
+// Ledger fee penarikan yang masuk ke likuiditas DEX PancakeSwap
+model LiquidityLog {
+  id           String   @id @default(cuid())
+  withdrawalId String?
+  amount       Float // jumlah AGENMINER masuk likuiditas
+  dex          String   @default("PancakeSwap V2")
+  pairAddress  String? // pair AGENMINER/BNB
+  note         String?
+  createdAt    DateTime @default(now())
+
+  withdrawal Withdrawal? @relation(fields: [withdrawalId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
 }
