@@ -111,7 +111,7 @@ export default function Page() {
       <div className="relative z-10 flex min-h-screen flex-col lg:pl-64">
         <GameHeader />
 
-        <main className="mx-auto w-full max-w-md flex-1 px-4 pb-32 pt-4 md:max-w-2xl lg:max-w-6xl lg:px-8 lg:pb-12 lg:pt-6">
+        <main className="mx-auto w-full max-w-md flex-1 px-4 pb-32 pt-4 md:max-w-2xl md:px-6 lg:max-w-6xl lg:px-8 lg:pb-12 lg:pt-6">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={tab}

@@ -90,7 +90,7 @@ export default function BoostTab() {
       )}
 
       {/* Upgrade + Check-in — grid desktop 2 kolom */}
-      <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
       {/* ── Upgrade Power ── */}
       <div className="am-card rounded-2xl border border-[#F0B90B]/30 bg-gradient-to-br from-[#F0B90B]/10 to-[#181A20] p-5">
         <div className="flex items-center justify-between">

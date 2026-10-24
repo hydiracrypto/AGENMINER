@@ -73,7 +73,7 @@ export default function LoginScreen() {
         <LanguageToggle />
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center gap-6 px-5 py-10 lg:max-w-6xl lg:grid lg:grid-cols-[1.05fr_400px] lg:items-center lg:gap-14 lg:px-10">
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-md flex-col items-center justify-center gap-6 px-5 py-10 md:max-w-xl md:px-8 lg:max-w-6xl lg:grid lg:grid-cols-[1.05fr_400px] lg:items-center lg:gap-14 lg:px-10">
         {/* ════ Kolom brand (mobile: atas, desktop: kiri) ════ */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}

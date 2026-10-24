@@ -99,11 +99,12 @@ export default function MineTab() {
   const canMine = cooling === null && !mining;
 
   return (
-    <div className="space-y-5">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 lg:items-start lg:gap-6">
+      {/* ── Kolom kiri: Statistik Pool + Mining Core ── */}
+      <div className="space-y-5">
       {/* ── Statistik Pool: Total Supply / Network / Mining Pool / Mined / Remaining ── */}
       <PoolStatsCard refreshKey={statsKey} />
 
-      <div className="grid gap-5 lg:grid-cols-2 lg:items-start lg:gap-6">
       {/* ── Mining Core ── */}
       <div className="relative flex flex-col items-center pt-2 pb-1 lg:pt-8">
         <div className="relative h-64 w-64 flex items-center justify-center lg:h-72 lg:w-72">
@@ -198,6 +199,7 @@ export default function MineTab() {
           </span>
         </div>
       </div>
+      </div>
 
       {/* ── Kolom kanan: Prompt + Cara kerja ── */}
       <div className="space-y-5">
@@ -288,7 +290,6 @@ export default function MineTab() {
       </div>
       </div>
       </div>
-    </div>
   );
 }
 

@@ -116,7 +116,7 @@ export default function WalletTab() {
       </div>
 
       {/* Tarik ke wallet + Likuiditas — grid desktop 2 kolom */}
-      <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
       {/* Tarik ke wallet — TANPA MINIMAL + AUTO MINT */}
       <div className="am-card rounded-2xl border border-[#20B26C]/40 bg-gradient-to-br from-[#20B26C]/8 to-[#181A20] p-5 space-y-3">
         <div className="flex items-center justify-between gap-2">
@@ -227,7 +227,7 @@ export default function WalletTab() {
       </div>
 
       {/* Info kontrak + riwayat penarikan — grid desktop 2 kolom */}
-      <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
       {/* Info kontrak */}
       <div className="am-card rounded-2xl border border-[#2B3139] bg-[#181A20] p-5 space-y-2.5">
         <h3 className="text-sm font-bold">🪙 {t("tokenInfo", { sym: TOKEN.symbol })}</h3>

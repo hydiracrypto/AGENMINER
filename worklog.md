@@ -106,3 +106,30 @@ Work Log:
 
 Stage Summary:
 - Situs kini responsif penuh: MOBILE (bottom nav, 1 kolom, seperti sebelumnya) & DESKTOP (sidebar navigasi + konten lebar 6xl, grid 2 kolom di semua tab, footer profesional). Tampilan dinaikkan kelasnya: background glow+grid, judul gradient, kartu hover-lift, transisi tab halus, login split-screen dengan daftar fitur. Satu-satunya bug runtime (TOKEN import) ditemukan & diperbaiki; E2E mining/withdraw/navigasi/toggle bahasa terverifikasi di kedua viewport.
+
+---
+Task ID: 6
+Agent: Z.ai (main agent)
+Task: Perbaiki tampilan mobile "miring" (screenshot user: header/kartu Pool Stats bergeser kiri & lebih sempit, prompt/nav tembus tepi kanan layar) dan perbaiki versi desktop.
+
+Work Log:
+- Analisis screenshot user (720x1600) via PIL: kartu Pool Stats hanya 68% lebar layar & left-anchored, kartu Prompt + bottom nav terpotong di tepi kanan -> layout melebar dari viewport.
+- Reproduksi agent-browser: kode saat ini SEJAJAR di 616px, tetapi KONFIRMASI bug di rentang tablet 768-1023px: header inner & BottomNav masih max-w-md (448) sementara main sudah md:max-w-2xl (672) -> tidak sejajar.
+- AKAR MASALAH MOBILE DITEMUKAN: grid root Mine tab memakai KOLOM IMPLISIT (tanpa grid-cols-1) -> track tidak bisa menyusut di bawah min-content; tombol contoh prompt (truncate + teks panjang nowrap, min-content ~406px) memaksa seluruh kolom meluber -> halaman lebih lebar dari layar -> tampilan miring/geser. Pola sama ada di 7 grid lain (boost/friends/rank/wallet/friends-langkah).
+- FIX globals.css: guard overflow-x hidden+clip pada html/body + overscroll-behavior-x none (clip agar position:sticky header tetap bekerja); .am-card:hover dibungkus @media (hover:hover) agar tidak sticky-hover di layar sentuh.
+- FIX game-header.tsx: container max-w-md md:max-w-2xl md:px-6 lg:max-w-6xl lg:px-8 (sejajar dengan main di semua breakpoint).
+- FIX bottom-nav.tsx: pill nav md:max-w-2xl (ikut lebar konten di tablet).
+- FIX page.tsx: main md:px-6 (padding bertahap).
+- FIX mine-tab.tsx: (1) grid root diberi grid-cols-1, (2) restrukturisasi desktop — PoolStatsCard pindah ke kolom kiri grid (kolom kiri = statistik + mining core, kanan = prompt + cara kerja) agar kartu tidak melar 1152px di 6xl; urutan mobile tetap identik.
+- FIX grid-cols-1 di boost-tab, friends-tab (2 grid), rank-tab, wallet-tab (2 grid).
+- FIX login-screen.tsx: container md:max-w-xl md:px-8 untuk rentang tablet.
+- Verifikasi agent-browser E2E: probe overflow level-ELEMEN (deteksi rect melewati viewport dengan pengecualian ancestor clip) di 13 viewport (320/360/390/480/616/705/768/800/1023/1024/1280/1440/1920) = NOL overflow di tab Mine; semua tab (boost/friends/rank/wallet) = NOL overflow di 360/800/1440; alignment header==main==nav terverifikasi di semua viewport.
+- E2E fungsional tetap jalan: login demo, mining prompt zh +80 (skor 85), kartu pool auto-refresh 486->566/剩余 69,999,434, cooldown ring 38s tampil.
+- Lint bersih, dev.log tanpa error.
+- Screenshot bukti di download/: v6-mine-360.png, v6-mine-616.png (mobile terpusat sempurna), v6-mine-800.png (tablet konsisten 672px), v6-mine-1440.png (dashboard 2 kolom profesional), v6-login-616.png, v6-login-1440.png.
+- CATATAN: curl ke genminer.space-z.ai dari luar mengembalikan halaman "Recycled" (routing preview sempat putus) -> ponsel user kemungkinan menampilkan cache/build lama; user perlu refresh paksa setelah perbaikan ini.
+
+Stage Summary:
+- Bug "miring" tuntas: penyebab utama = min-content tombol contoh prompt (truncate) melalui grid kolom implisit + tidak ada guard overflow-x; diperbaiki dengan grid-cols-1 di 7 grid + guard html/body + konsistensi max-width header/nav di seluruh breakpoint (sm/md/lg).
+- Desktop dirapikan: Mine tab kini dashboard 2 kolom seimbang (statistik+core | prompt+cara kerja), tablet 768-1023 kini sejajar penuh, login adaptif md.
+- Terverifikasi NOL overflow elemen di 13 viewport x 5 tab; fitur inti (mining, pool stats live, fee 5%) tetap berfungsi.

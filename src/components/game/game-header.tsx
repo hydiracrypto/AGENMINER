@@ -14,7 +14,7 @@ export default function GameHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-[#2B3139]/80 bg-[#0B0E11]/90 backdrop-blur-xl">
-      <div className="mx-auto max-w-md px-4 py-3 lg:max-w-6xl lg:px-8">
+      <div className="mx-auto max-w-md px-4 py-3 md:max-w-2xl md:px-6 lg:max-w-6xl lg:px-8">
         <div className="flex items-center gap-2">
           {/* Profil */}
           <button

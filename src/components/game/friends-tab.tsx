@@ -43,7 +43,7 @@ export default function FriendsTab() {
   return (
     <div className="space-y-4">
       {/* Kartu komisi + Bagikan — grid desktop 2 kolom */}
-      <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
       {/* Kartu komisi */}
       <div className="am-card rounded-2xl border border-[#A855F7]/30 bg-gradient-to-br from-[#A855F7]/12 to-[#181A20] p-5">
         <div className="flex items-center justify-between">
@@ -107,7 +107,7 @@ export default function FriendsTab() {
         <h3 className="text-sm font-bold flex items-center gap-1.5 mb-3">
           <Gift className="h-4 w-4 text-[#20B26C]" /> {t("howReferral")}
         </h3>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <RefStep n={1} title={t("ref1Title")} desc={t("ref1Desc")} />
           <RefStep
             n={2}
