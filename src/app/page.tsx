@@ -80,7 +80,7 @@ export default function Page() {
           transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
           className="h-16 w-16 rounded-full border-4 border-[#2B3139] border-t-[#F0B90B]"
         />
-        <p className="text-sm text-[#848E9C] font-semibold tracking-wide">AGENTIC MINER • memuat rig...</p>
+        <p className="text-sm text-[#848E9C] font-semibold tracking-wide">AGENTIC MINER</p>
       </div>
     );
   }

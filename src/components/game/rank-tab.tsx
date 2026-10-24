@@ -5,12 +5,15 @@ import { Trophy, RefreshCw, Medal } from "lucide-react";
 import { TOKEN, fmtNum } from "@/lib/game-config";
 import { api } from "@/lib/api-client";
 import { useGameStore } from "@/lib/store";
+import { useT } from "@/lib/i18n";
 import type { LeaderboardRow } from "@/lib/types";
+import CryptoCountries from "@/components/game/crypto-countries";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
 export default function RankTab() {
   const user = useGameStore((s) => s.user);
+  const { t, lang } = useT();
   const [rows, setRows] = useState<LeaderboardRow[]>([]);
   const [meRank, setMeRank] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -43,38 +46,36 @@ export default function RankTab() {
           <Trophy className="h-6 w-6 text-[#F0B90B]" />
         </span>
         <div className="flex-1">
-          <p className="text-[10px] uppercase tracking-wide text-[#848E9C]">Peringkat Kamu</p>
+          <p className="text-[10px] uppercase tracking-wide text-[#848E9C]">{t("yourRank")}</p>
           <p className="text-2xl font-extrabold text-[#F0B90B] tabular-nums">
             {meRank > 0 ? `#${meRank}` : "—"}
           </p>
         </div>
         <div className="text-right">
-          <p className="text-[10px] uppercase tracking-wide text-[#848E9C]">Total Ditambang</p>
-          <p className="text-lg font-extrabold tabular-nums">{fmtNum(user.totalMined)}</p>
+          <p className="text-[10px] uppercase tracking-wide text-[#848E9C]">{t("totalMined")}</p>
+          <p className="text-lg font-extrabold tabular-nums">{fmtNum(user.totalMined, 2, lang)}</p>
           <p className="text-[10px] text-[#848E9C]">{TOKEN.symbol}</p>
         </div>
       </div>
 
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-bold flex items-center gap-1.5">
-          <Medal className="h-4 w-4 text-[#F0B90B]" /> 50 Penambang Teratas
+          <Medal className="h-4 w-4 text-[#F0B90B]" /> {t("top50")}
         </h3>
         <button
           onClick={load}
           className="flex items-center gap-1 text-xs text-[#848E9C] hover:text-[#F0B90B] transition-colors"
         >
-          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> Segarkan
+          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} /> {t("refresh")}
         </button>
       </div>
 
       {/* List */}
       <div className="rounded-2xl border border-[#2B3139] bg-[#181A20] overflow-hidden">
         {loading && rows.length === 0 ? (
-          <div className="p-8 text-center text-xs text-[#848E9C]">Memuat peringkat...</div>
+          <div className="p-8 text-center text-xs text-[#848E9C]">{t("loadingRank")}</div>
         ) : rows.length === 0 ? (
-          <div className="p-8 text-center text-xs text-[#848E9C]">
-            Belum ada penambang. Jadilah yang pertama menambang {TOKEN.symbol}!
-          </div>
+          <div className="p-8 text-center text-xs text-[#848E9C]">{t("emptyRank", { sym: TOKEN.symbol })}</div>
         ) : (
           <ul className="divide-y divide-[#2B3139] max-h-[60vh] overflow-y-auto agenminer-scroll">
             {rows.map((row) => (
@@ -90,12 +91,12 @@ export default function RankTab() {
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className={`text-sm font-bold truncate ${row.isMe ? "text-[#F0B90B]" : ""}`}>
-                    {row.username} {row.isMe && <span className="text-[10px] text-[#848E9C]">(kamu)</span>}
+                    {row.username} {row.isMe && <span className="text-[10px] text-[#848E9C]">({t("you")})</span>}
                   </p>
                   <p className="text-[11px] text-[#848E9C] font-mono">{row.walletAddress}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-extrabold tabular-nums">{fmtNum(row.totalMined)}</p>
+                  <p className="text-sm font-extrabold tabular-nums">{fmtNum(row.totalMined, 2, lang)}</p>
                   <p className="text-[10px] text-[#848E9C]">Pw x{row.miningPower}</p>
                 </div>
               </li>
@@ -103,6 +104,9 @@ export default function RankTab() {
           </ul>
         )}
       </div>
+
+      {/* Negara dengan pengguna kripto terbanyak */}
+      <CryptoCountries limit={10} />
     </div>
   );
 }

@@ -7,10 +7,12 @@ import { Button } from "@/components/ui/button";
 import { GAME, TOKEN, fmtNum, upgradeCost } from "@/lib/game-config";
 import { api } from "@/lib/api-client";
 import { useGameStore } from "@/lib/store";
+import { useT } from "@/lib/i18n";
 
 export default function BoostTab() {
   const user = useGameStore((s) => s.user);
   const setUser = useGameStore((s) => s.setUser);
+  const { t, lang } = useT();
   const [busy, setBusy] = useState<"upgrade" | "checkin" | null>(null);
   const [feedback, setFeedback] = useState<{ type: "ok" | "err"; msg: string } | null>(null);
 
@@ -23,13 +25,20 @@ export default function BoostTab() {
     try {
       const res = await api.boost(user.walletAddress, "upgrade");
       setUser(res.user);
-      setFeedback({ type: "ok", msg: res.message });
+      setFeedback({ type: "ok", msg: t("okUpgrade", { lv: res.user.miningPower }) });
     } catch (err) {
-      setFeedback({ type: "err", msg: err instanceof Error ? err.message : "Gagal upgrade" });
+      const e = err as Error & { errorKey?: string };
+      if (e.errorKey === "insufficient_upgrade") {
+        setFeedback({ type: "err", msg: t("errInsufficient", { n: fmtNum(upgradeCost(user.miningPower), 0, lang), sym: TOKEN.symbol }) });
+      } else if (e.errorKey === "already_checkin") {
+        setFeedback({ type: "err", msg: t("errAlreadyCheckin") });
+      } else {
+        setFeedback({ type: "err", msg: e.message ?? t("errUpgrade") });
+      }
     } finally {
       setBusy(null);
     }
-  }, [user, busy, setUser]);
+  }, [user, busy, setUser, t, lang]);
 
   const handleCheckin = useCallback(async () => {
     if (!user || busy) return;
@@ -38,22 +47,30 @@ export default function BoostTab() {
     try {
       const res = await api.boost(user.walletAddress, "checkin");
       setUser(res.user);
-      setFeedback({ type: "ok", msg: res.message });
+      setFeedback({
+        type: "ok",
+        msg: t("okCheckin", { streak: res.streak ?? res.user.streak, n: fmtNum(res.reward ?? 0, 0, lang), sym: TOKEN.symbol }),
+      });
     } catch (err) {
-      setFeedback({ type: "err", msg: err instanceof Error ? err.message : "Gagal check-in" });
+      const e = err as Error & { errorKey?: string };
+      if (e.errorKey === "already_checkin") {
+        setFeedback({ type: "err", msg: t("errAlreadyCheckin") });
+      } else {
+        setFeedback({ type: "err", msg: e.message ?? t("errCheckin") });
+      }
     } finally {
       setBusy(null);
     }
-  }, [user, busy, setUser]);
+  }, [user, busy, setUser, t, lang]);
 
   if (!user) return null;
 
   const canAfford = user.balance >= cost;
   const tokenomics = [
-    { label: "Pool Mining", value: TOKEN.miningPool, pct: 70, color: "#F0B90B" },
-    { label: "Tim & Treasury", value: TOKEN.teamTreasury, pct: 10, color: "#A855F7" },
-    { label: "Marketing", value: TOKEN.marketing, pct: 10, color: "#20B26C" },
-    { label: "Likuiditas DEX", value: TOKEN.liquidity, pct: 10, color: "#5E6673" },
+    { label: t("tmPool"), value: TOKEN.miningPool, pct: 70, color: "#F0B90B" },
+    { label: t("tmTeam"), value: TOKEN.teamTreasury, pct: 10, color: "#A855F7" },
+    { label: t("tmMarketing"), value: TOKEN.marketing, pct: 10, color: "#20B26C" },
+    { label: t("tmLiquidity"), value: TOKEN.liquidity, pct: 10, color: "#5E6673" },
   ];
 
   return (
@@ -79,18 +96,18 @@ export default function BoostTab() {
             <h3 className="text-sm font-bold flex items-center gap-1.5">
               <Zap className="h-4 w-4 text-[#F0B90B]" /> Mining Power
             </h3>
-            <p className="text-xs text-[#848E9C] mt-0.5">Setiap level melipatgandakan reward tambang</p>
+            <p className="text-xs text-[#848E9C] mt-0.5">{t("boostDesc")}</p>
           </div>
           <div className="text-right">
             <p className="text-3xl font-extrabold text-[#F0B90B]">x{user.miningPower}</p>
-            <p className="text-[10px] text-[#848E9C]">Level {user.miningPower}</p>
+            <p className="text-[10px] text-[#848E9C]">{t("level", { n: user.miningPower })}</p>
           </div>
         </div>
 
         <div className="mt-4 flex items-center justify-between rounded-xl bg-[#0B0E11] border border-[#2B3139] px-4 py-3">
           <div className="text-xs text-[#848E9C]">
-            Upgrade ke <span className="font-bold text-[#EAECEF]">x{user.miningPower + 1}</span>
-            <p className="text-[10px] mt-0.5">Biaya: {fmtNum(cost)} {TOKEN.symbol}</p>
+            {t("upgradeTo", { n: user.miningPower + 1 })}
+            <p className="text-[10px] mt-0.5">{t("cost", { c: fmtNum(cost, 0, lang), sym: TOKEN.symbol })}</p>
           </div>
           <Button
             onClick={handleUpgrade}
@@ -98,12 +115,12 @@ export default function BoostTab() {
             className="h-10 rounded-xl bg-gradient-to-r from-[#F8D33A] to-[#F0B90B] font-bold text-[#0B0E11] hover:opacity-90 disabled:opacity-40"
           >
             {busy === "upgrade" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowUpRight className="h-4 w-4" />}
-            Upgrade
+            {t("upgrade")}
           </Button>
         </div>
         {!canAfford && (
           <p className="mt-2 text-[11px] text-[#848E9C]">
-            Kurang {fmtNum(cost - user.balance)} {TOKEN.symbol} — tambang lagi untuk mengumpulkan!
+            {t("needMoreUpgrade", { n: fmtNum(cost - user.balance, 0, lang), sym: TOKEN.symbol })}
           </p>
         )}
       </div>
@@ -111,10 +128,10 @@ export default function BoostTab() {
       {/* ── Check-in Harian ── */}
       <div className="rounded-2xl border border-[#2B3139] bg-[#181A20] p-5">
         <h3 className="text-sm font-bold flex items-center gap-1.5">
-          <Gift className="h-4 w-4 text-[#20B26C]" /> Check-in Harian
+          <Gift className="h-4 w-4 text-[#20B26C]" /> {t("dailyCheckin")}
         </h3>
         <p className="text-xs text-[#848E9C] mt-0.5">
-          Bonus {fmtNum(GAME.checkinBaseReward)} × Power × Streak setiap hari + jaga streak tetap hidup
+          {t("checkinDesc", { n: fmtNum(GAME.checkinBaseReward, 0, lang) })}
         </p>
 
         {/* 7 hari streak */}
@@ -150,11 +167,11 @@ export default function BoostTab() {
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : user.canCheckin ? (
             <>
-              <Cake className="mr-1.5 h-4 w-4" /> Check-in Sekarang
+              <Cake className="mr-1.5 h-4 w-4" /> {t("checkinNow")}
             </>
           ) : (
             <>
-              <CheckCircle2 className="mr-1.5 h-4 w-4" /> Sudah check-in hari ini
+              <CheckCircle2 className="mr-1.5 h-4 w-4" /> {t("checkedIn")}
             </>
           )}
         </Button>
@@ -162,23 +179,21 @@ export default function BoostTab() {
 
       {/* ── Tokenomics ── */}
       <div className="rounded-2xl border border-[#2B3139] bg-[#181A20] p-5">
-        <h3 className="text-sm font-bold">📊 Tokenomics {TOKEN.symbol}</h3>
-        <p className="text-xs text-[#848E9C] mt-0.5">
-          Total suplai tetap {fmtNum(TOKEN.totalSupply, 0)} token — tanpa inflasi
-        </p>
+        <h3 className="text-sm font-bold">📊 {t("tokenomics", { sym: TOKEN.symbol })}</h3>
+        <p className="text-xs text-[#848E9C] mt-0.5">{t("fixedSupplyNote", { n: fmtNum(TOKEN.totalSupply, 0, lang) })}</p>
         <div className="mt-4 flex h-3 rounded-full overflow-hidden">
-          {tokenomics.map((t) => (
-            <div key={t.label} style={{ width: `${t.pct}%`, backgroundColor: t.color }} title={t.label} />
+          {tokenomics.map((tk) => (
+            <div key={tk.label} style={{ width: `${tk.pct}%`, backgroundColor: tk.color }} title={tk.label} />
           ))}
         </div>
         <div className="mt-4 grid grid-cols-2 gap-2.5">
-          {tokenomics.map((t) => (
-            <div key={t.label} className="flex items-center gap-2 rounded-xl bg-[#0B0E11] px-3 py-2.5">
-              <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: t.color }} />
+          {tokenomics.map((tk) => (
+            <div key={tk.label} className="flex items-center gap-2 rounded-xl bg-[#0B0E11] px-3 py-2.5">
+              <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: tk.color }} />
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold truncate">{t.label}</p>
+                <p className="text-[11px] font-semibold truncate">{tk.label}</p>
                 <p className="text-[10px] text-[#848E9C]">
-                  {fmtNum(t.value, 0)} • {t.pct}%
+                  {fmtNum(tk.value, 0, lang)} • {tk.pct}%
                 </p>
               </div>
             </div>

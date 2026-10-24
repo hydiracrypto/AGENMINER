@@ -2,18 +2,20 @@
 
 import { Pickaxe, Zap, Users, Trophy, Wallet } from "lucide-react";
 import { useGameStore, type GameTab } from "@/lib/store";
-
-const TABS: { id: GameTab; label: string; icon: React.ReactNode }[] = [
-  { id: "mine", label: "Mine", icon: <Pickaxe className="h-5 w-5" /> },
-  { id: "boost", label: "Boost", icon: <Zap className="h-5 w-5" /> },
-  { id: "friends", label: "Teman", icon: <Users className="h-5 w-5" /> },
-  { id: "rank", label: "Rank", icon: <Trophy className="h-5 w-5" /> },
-  { id: "wallet", label: "Wallet", icon: <Wallet className="h-5 w-5" /> },
-];
+import { useT } from "@/lib/i18n";
 
 export default function BottomNav() {
   const tab = useGameStore((s) => s.tab);
   const setTab = useGameStore((s) => s.setTab);
+  const { t } = useT();
+
+  const TABS: { id: GameTab; label: string; icon: React.ReactNode }[] = [
+    { id: "mine", label: t("navMine"), icon: <Pickaxe className="h-5 w-5" /> },
+    { id: "boost", label: t("navBoost"), icon: <Zap className="h-5 w-5" /> },
+    { id: "friends", label: t("navFriends"), icon: <Users className="h-5 w-5" /> },
+    { id: "rank", label: t("navRank"), icon: <Trophy className="h-5 w-5" /> },
+    { id: "wallet", label: t("navWallet"), icon: <Wallet className="h-5 w-5" /> },
+  ];
 
   return (
     <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-40 pb-[env(safe-area-inset-bottom)]">

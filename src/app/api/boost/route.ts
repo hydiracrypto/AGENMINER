@@ -13,12 +13,12 @@ export async function POST(req: NextRequest) {
     const action = String(body?.action ?? "");
 
     if (!isValidEvmAddress(address)) {
-      return NextResponse.json({ error: "Alamat wallet tidak valid" }, { status: 400 });
+      return NextResponse.json({ error: "Alamat wallet tidak valid", errorKey: "invalid_address" }, { status: 400 });
     }
 
     const user = await db.user.findUnique({ where: { walletAddress: address } });
     if (!user) {
-      return NextResponse.json({ error: "Akun tidak ditemukan" }, { status: 404 });
+      return NextResponse.json({ error: "Akun tidak ditemukan", errorKey: "account_missing" }, { status: 404 });
     }
 
     // ── UPGRADE: tingkatkan mining power dengan membakar AGENMINER ──
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       const cost = upgradeCost(user.miningPower);
       if (user.balance < cost) {
         return NextResponse.json(
-          { error: `Saldo kurang. Butuh ${cost.toLocaleString("id-ID")} ${TOKEN_SYMBOL} untuk upgrade.` },
+          { error: `Saldo kurang. Butuh ${cost.toLocaleString("id-ID")} ${TOKEN_SYMBOL} untuk upgrade.`, errorKey: "insufficient_upgrade" },
           { status: 400 }
         );
       }
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     if (action === "checkin") {
       const today = todayStr();
       if (user.lastCheckin === today) {
-        return NextResponse.json({ error: "Kamu sudah check-in hari ini. Kembali besok!" }, { status: 400 });
+        return NextResponse.json({ error: "Kamu sudah check-in hari ini. Kembali besok!", errorKey: "already_checkin" }, { status: 400 });
       }
       const newStreak = nextStreak(user);
       const reward = computeCheckinReward(user.miningPower, newStreak);

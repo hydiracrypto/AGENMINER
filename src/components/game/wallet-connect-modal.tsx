@@ -13,6 +13,7 @@ import {
 } from "@/lib/wallet";
 import { api } from "@/lib/api-client";
 import { useGameStore } from "@/lib/store";
+import { useT } from "@/lib/i18n";
 import { isValidEvmAddress } from "@/lib/game-config";
 
 interface Props {
@@ -23,6 +24,7 @@ interface Props {
 
 export default function WalletConnectModal({ open, onClose, refCode }: Props) {
   const setUser = useGameStore((s) => s.setUser);
+  const { t } = useT();
   const [options, setOptions] = useState<WalletOption[]>([]);
   const [scanning, setScanning] = useState(true);
   const [connecting, setConnecting] = useState<string | null>(null);
@@ -68,12 +70,12 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
         setUser(res.user);
         onClose();
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Gagal masuk");
+        setError(err instanceof Error ? err.message : t("errLogin"));
       } finally {
         if (mounted.current) setLoggingIn(false);
       }
     },
-    [refCode, setUser, onClose]
+    [refCode, setUser, onClose, t]
   );
 
   const handleConnect = useCallback(
@@ -88,25 +90,25 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
         const msg =
           err instanceof Error
             ? err.message.includes("user rejected") || err.message.includes("denied")
-              ? "Koneksi dibatalkan di wallet"
+              ? t("errUserRejected")
               : err.message
-            : "Gagal terhubung ke wallet";
+            : t("errConnect");
         setError(msg);
       } finally {
         if (mounted.current) setConnecting(null);
       }
     },
-    [completeLogin]
+    [completeLogin, t]
   );
 
   const handleDemoLogin = useCallback(async () => {
     const addr = demoAddress.trim();
     if (!isValidEvmAddress(addr)) {
-      setError("Format alamat tidak valid. Contoh: 0x71C7656EC7ab88b098defB751B7401B5f6d8976F");
+      setError(t("errAddrFormat"));
       return;
     }
-    await completeLogin(addr.toLowerCase(), "Mode Demo");
-  }, [demoAddress, completeLogin]);
+    await completeLogin(addr.toLowerCase(), "Demo Mode");
+  }, [demoAddress, completeLogin, t]);
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -114,7 +116,7 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
         <DialogHeader className="px-5 pt-5 pb-3 border-b border-[#2B3139]">
           <DialogTitle className="flex items-center gap-2 text-base font-bold">
             <Wallet className="h-5 w-5 text-[#F0B90B]" />
-            Hubungkan Binance Agentic Wallet
+            {t("connectTitle")}
           </DialogTitle>
         </DialogHeader>
 
@@ -122,7 +124,7 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
           {scanning && (
             <div className="flex items-center gap-3 rounded-xl border border-[#2B3139] bg-[#0B0E11] p-4 text-sm text-[#848E9C]">
               <Loader2 className="h-4 w-4 animate-spin text-[#F0B90B]" />
-              Memindai wallet di browser kamu...
+              {t("scanning")}
             </div>
           )}
 
@@ -130,8 +132,7 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
             <div className="rounded-xl border border-[#2B3139] bg-[#0B0E11] p-4 text-sm text-[#848E9C] flex gap-3">
               <AlertTriangle className="h-5 w-5 shrink-0 text-[#F0B90B]" />
               <p>
-                Tidak ada wallet Web3 terdeteksi. Install <span className="text-[#EAECEF]">Binance Web3 Wallet</span>{" "}
-                (ekstensi browser / di dalam aplikasi Binance), atau gunakan Mode Demo di bawah untuk mencoba game.
+                {t("noWallet")}
               </p>
             </div>
           )}
@@ -163,12 +164,12 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
                   {opt.name}
                   {opt.isBinance && (
                     <span className="rounded-full bg-[#F0B90B] px-1.5 py-0.5 text-[9px] font-bold text-[#0B0E11]">
-                      REKOMENDED
+                      {t("recommended")}
                     </span>
                   )}
                 </p>
                 <p className="text-xs text-[#848E9C] truncate">
-                  {opt.isBinance ? "Agentic Wallet • BNB Smart Chain" : "Wallet Web3 terdeteksi"}
+                  {opt.isBinance ? "Agentic Wallet • BNB Smart Chain" : t("walletDetected")}
                 </p>
               </div>
               {connecting === opt.id ? (
@@ -193,15 +194,15 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
                 <Keyboard className="h-5 w-5" />
               </span>
               <div>
-                <p className="font-semibold text-sm">Mode Demo (Alamat Manual)</p>
-                <p className="text-xs text-[#848E9C]">Masuk dengan menempelkan alamat wallet BNB kamu</p>
+                <p className="font-semibold text-sm">{t("demoMode")}</p>
+                <p className="text-xs text-[#848E9C]">{t("demoDesc")}</p>
               </div>
             </button>
           ) : (
             <div className="rounded-xl border border-[#2B3139] bg-[#0B0E11] p-4 space-y-3">
               <p className="text-xs text-[#848E9C] flex items-center gap-1.5">
                 <Sparkles className="h-3.5 w-3.5 text-[#C994F7]" />
-                Untuk testing cepat tanpa ekstensi wallet. Gunakan alamat BNB Chain kamu.
+                {t("demoNote")}
               </p>
               <Input
                 value={demoAddress}
@@ -216,14 +217,14 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
                   disabled={loggingIn}
                   className="flex-1 h-10 rounded-xl bg-gradient-to-r from-[#F8D33A] to-[#F0B90B] font-bold text-[#0B0E11] hover:opacity-90"
                 >
-                  {loggingIn ? <Loader2 className="h-4 w-4 animate-spin" /> : "Masuk"}
+                  {loggingIn ? <Loader2 className="h-4 w-4 animate-spin" /> : t("signIn")}
                 </Button>
                 <Button
                   variant="ghost"
                   onClick={() => setDemoMode(false)}
                   className="h-10 rounded-xl text-[#848E9C] hover:text-[#EAECEF]"
                 >
-                  Batal
+                  {t("cancel")}
                 </Button>
               </div>
             </div>
@@ -237,8 +238,7 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
         </div>
 
         <div className="px-5 py-3 border-t border-[#2B3139] text-[10px] leading-relaxed text-[#848E9C]">
-          Dengan masuk, kamu setuju bahwa mining reward disimpan sebagai saldo game di jaringan {`BNB Chain`} dan dapat
-          ditarik ke wallet setelah diproses tim distribusi.
+          {t("connectFooter")}
         </div>
       </DialogContent>
     </Dialog>

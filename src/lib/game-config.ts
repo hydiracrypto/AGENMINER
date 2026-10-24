@@ -33,7 +33,7 @@ export const GAME = {
   referrerJoinBonus: 500, // bonus undangan untuk pengundang
   refCommission: 0.05, // komisi 5% dari reward pengundang
   checkinBaseReward: 100, // reward check-in harian dasar
-  minWithdraw: 2_500, // minimal penarikan
+  minWithdraw: 0, // TANPA minimal penarikan — tarik berapa pun!
   recentPromptLimit: 10, // cek duplikat 10 prompt terakhir
 } as const;
 
@@ -77,14 +77,14 @@ export function truncateAddress(addr: string): string {
   return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 }
 
-export function fmtNum(n: number, decimals = 2): string {
-  return new Intl.NumberFormat("id-ID", {
+export function fmtNum(n: number, decimals = 2, lang: "id" | "en" = "id"): string {
+  return new Intl.NumberFormat(lang === "en" ? "en-US" : "id-ID", {
     minimumFractionDigits: 0,
     maximumFractionDigits: decimals,
   }).format(n);
 }
 
-export const PROMPT_EXAMPLES: string[] = [
+const PROMPT_EXAMPLES_ID: string[] = [
   "Tambang blok baru dengan cepat quantum AI dari pusat galaksi BNB Chain!",
   "Selami kedalaman mempool dan panen transaksi emas yang tertunda sejak 2021",
   "Hidupkan reaktor neural network untuk mengkristalkan hash gas menjadi AGENMINER",
@@ -93,7 +93,17 @@ export const PROMPT_EXAMPLES: string[] = [
   "Nyalakan GPU berlian dan gali smart contract legendaris di blockchain beku",
 ];
 
-export function randomExamples(count = 3): string[] {
-  const shuffled = [...PROMPT_EXAMPLES].sort(() => Math.random() - 0.5);
+const PROMPT_EXAMPLES_EN: string[] = [
+  "Mine a fresh block with quantum AI speed from the heart of the BNB Chain galaxy!",
+  "Dive deep into the mempool and harvest golden transactions pending since 2021",
+  "Ignite the neural network reactor to crystallize gas hashes into AGENMINER",
+  "Train 10,000 AI agents to mine crypto umbrellas across BNB cumulus clouds",
+  "Extract liquidity from the Polygon black hole using a liquid blurple drill",
+  "Fire up diamond GPUs and dig legendary smart contracts from frozen blockchain",
+];
+
+export function randomExamples(count = 3, lang: "id" | "en" = "id"): string[] {
+  const pool = lang === "en" ? PROMPT_EXAMPLES_EN : PROMPT_EXAMPLES_ID;
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, count);
 }

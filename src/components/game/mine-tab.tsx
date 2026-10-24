@@ -1,19 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Pickaxe, Loader2, Clock, Shuffle, Sparkles, Flame, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { GAME, TOKEN, computeReward, fmtNum, randomExamples, streakMultiplier } from "@/lib/game-config";
 import { api } from "@/lib/api-client";
 import { useGameStore } from "@/lib/store";
+import { useT } from "@/lib/i18n";
 import type { MineResult } from "@/lib/types";
 
 export default function MineTab() {
   const user = useGameStore((s) => s.user);
   const setUser = useGameStore((s) => s.setUser);
   const setReward = useGameStore((s) => s.setReward);
+  const { t, lang } = useT();
 
   const [prompt, setPrompt] = useState("");
   const [examples, setExamples] = useState<string[]>([]);
@@ -25,9 +27,9 @@ export default function MineTab() {
 
   // Hindari hydration mismatch: contoh prompt acak hanya di client (async, bukan sync-in-effect)
   useEffect(() => {
-    const t = setTimeout(() => setExamples(randomExamples(3)), 0);
-    return () => clearTimeout(t);
-  }, []);
+    const tt = setTimeout(() => setExamples(randomExamples(3, lang)), 0);
+    return () => clearTimeout(tt);
+  }, [lang]);
 
   // ticking untuk cooldown
   useEffect(() => {
@@ -58,28 +60,36 @@ export default function MineTab() {
     const trimmed = prompt.trim();
     setError(null);
     if (trimmed.length < GAME.minPromptLen) {
-      setError(`Prompt minimal ${GAME.minPromptLen} karakter — tulis ide tambang yang kreatif!`);
+      setError(t("errPromptShort", { n: GAME.minPromptLen }));
       return;
     }
     setMining(true);
     try {
-      const result: MineResult & { refCommission?: number } = await api.mine(user.walletAddress, trimmed);
+      const result: MineResult & { refCommission?: number } = await api.mine(user.walletAddress, trimmed, lang);
       setUser(result.user);
       setReward(result);
       setJustMined(true);
       setPrompt("");
       setTimeout(() => setJustMined(false), 1600);
     } catch (err) {
-      const e = err as Error & { remainingMs?: number };
+      const e = err as Error & { remainingMs?: number; errorKey?: string };
       if (e.remainingMs) {
-        setError(`Rig masih mendinginkan — tunggu ${Math.ceil(e.remainingMs / 1000)} detik lagi.`);
+        setError(t("errCooldown", { n: Math.ceil(e.remainingMs / 1000) }));
+      } else if (e.errorKey === "prompt_short") {
+        setError(t("errPromptShort", { n: GAME.minPromptLen }));
+      } else if (e.errorKey === "prompt_long") {
+        setError(t("errPromptLong", { n: GAME.maxPromptLen }));
+      } else if (e.errorKey === "duplicate_prompt") {
+        setError(t("errDuplicate"));
+      } else if (e.errorKey === "pool_empty") {
+        setError(t("errPoolEmpty"));
       } else {
-        setError(e.message ?? "Gagal menambang, coba lagi.");
+        setError(e.message ?? t("errMineFail"));
       }
     } finally {
       setMining(false);
     }
-  }, [user, mining, prompt, setUser, setReward]);
+  }, [user, mining, prompt, setUser, setReward, t, lang]);
 
   if (!user) return null;
 
@@ -155,13 +165,13 @@ export default function MineTab() {
                 <span className="text-2xl font-extrabold tabular-nums text-[#EAECEF]">
                   {Math.ceil(cooling / 1000)}s
                 </span>
-                <span className="text-[10px] text-[#848E9C]">mendinginkan rig...</span>
+                <span className="text-[10px] text-[#848E9C]">{t("coolingRig")}</span>
               </>
             ) : (
               <>
                 <Pickaxe className="h-11 w-11 text-[#F0B90B] mb-1" />
-                <span className="text-sm font-extrabold text-[#EAECEF]">TAMBANG</span>
-                <span className="text-[10px] text-[#848E9C]">via Prompt AI</span>
+                <span className="text-sm font-extrabold text-[#EAECEF]">{t("mineBtn")}</span>
+                <span className="text-[10px] text-[#848E9C]">{t("viaPromptAI")}</span>
               </>
             )}
           </motion.button>
@@ -173,10 +183,11 @@ export default function MineTab() {
             <Zap className="h-3 w-3 text-[#F0B90B]" /> Power x{user.miningPower}
           </span>
           <span className="flex items-center gap-1 rounded-full bg-[#181A20] border border-[#2B3139] px-3 py-1.5 text-[#848E9C]">
-            <Flame className="h-3 w-3 text-[#F6465D]" /> Streak {user.streak} hari (+{Math.round((streakMultiplier(user.streak) - 1) * 100)}%)
+            <Flame className="h-3 w-3 text-[#F6465D]" />{" "}
+            {t("streakDays", { n: user.streak, p: Math.round((streakMultiplier(user.streak) - 1) * 100) })}
           </span>
           <span className="flex items-center gap-1 rounded-full bg-[#181A20] border border-[#2B3139] px-3 py-1.5 text-[#848E9C]">
-            ~{fmtNum(previewReward)} {TOKEN.symbol} / tambang
+            {t("perMine", { n: fmtNum(previewReward, 2, lang), sym: TOKEN.symbol })}
           </span>
         </div>
       </div>
@@ -186,29 +197,27 @@ export default function MineTab() {
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold flex items-center gap-1.5">
             <Sparkles className="h-4 w-4 text-[#C994F7]" />
-            Prompt Penambangan
+            {t("miningPrompt")}
           </h3>
           <button
-            onClick={() => setExamples(randomExamples(3))}
+            onClick={() => setExamples(randomExamples(3, lang))}
             className="flex items-center gap-1 text-xs text-[#848E9C] hover:text-[#F0B90B] transition-colors"
           >
             <Shuffle className="h-3.5 w-3.5" />
-            Ide acak
+            {t("randomIdeas")}
           </button>
         </div>
 
         <Textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value.slice(0, GAME.maxPromptLen))}
-          placeholder="Tulis perintah kreatif untuk rig AI kamu... contoh: 'Bor lubang hitam di mempool dan hisap hash emas ke dompet saya'"
+          placeholder={t("promptPlaceholder")}
           className="min-h-[88px] bg-[#0B0E11] border-[#2B3139] text-sm placeholder:text-[#5E6673] focus-visible:ring-[#F0B90B]/50 resize-none"
           maxLength={GAME.maxPromptLen}
         />
 
         <div className="flex justify-between text-[11px] text-[#848E9C]">
-          <span>
-            {prompt.trim().length}/{GAME.maxPromptLen} karakter — makin kreatif, makin besar reward!
-          </span>
+          <span>{t("charCount", { n: prompt.trim().length, max: GAME.maxPromptLen })}</span>
         </div>
 
         {examples.length > 0 && (
@@ -236,15 +245,15 @@ export default function MineTab() {
         >
           {mining ? (
             <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" /> AI sedang menambang...
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" /> {t("aiMining")}
             </>
           ) : cooling !== null ? (
             <>
-              <Clock className="mr-2 h-5 w-5" /> Siap dalam {Math.ceil(cooling / 1000)}s
+              <Clock className="mr-2 h-5 w-5" /> {t("readyIn", { n: Math.ceil(cooling / 1000) })}
             </>
           ) : (
             <>
-              <Pickaxe className="mr-2 h-5 w-5" /> MULAI MENAMBANG {TOKEN.symbol}
+              <Pickaxe className="mr-2 h-5 w-5" /> {t("startMining", { sym: TOKEN.symbol })}
             </>
           )}
         </Button>
@@ -252,19 +261,19 @@ export default function MineTab() {
 
       {/* ── Cara kerja ── */}
       <div className="rounded-2xl border border-[#2B3139] bg-[#181A20] p-4">
-        <h3 className="text-sm font-bold mb-3">⚙️ Cara Kerja Mining AI</h3>
+        <h3 className="text-sm font-bold mb-3">⚙️ {t("howItWorks")}</h3>
         <ol className="space-y-2.5 text-xs text-[#848E9C]">
           <li className="flex gap-2">
-            <Step n={1} /> Tulis prompt penambangan yang kreatif — semakin imajinatif semakin tinggi skor AI.
+            <Step n={1} /> {t("how1")}
           </li>
           <li className="flex gap-2">
-            <Step n={2} /> Agentic AI mengevaluasi prompt (0–100) dan mengkristalkan {TOKEN.symbol} dari pool.
+            <Step n={2} /> {t("how2", { sym: TOKEN.symbol })}
           </li>
           <li className="flex gap-2">
-            <Step n={3} /> Reward = (25 + skor×0.6) × Power × Bonus Streak — langsung masuk saldo game.
+            <Step n={3} /> {t("how3")}
           </li>
           <li className="flex gap-2">
-            <Step n={4} /> Naikkan Power di tab Boost & tarik {TOKEN.symbol} ke wallet BNB Chain kamu.
+            <Step n={4} /> {t("how4", { sym: TOKEN.symbol })}
           </li>
         </ol>
       </div>

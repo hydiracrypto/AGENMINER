@@ -18,8 +18,10 @@ async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
     const err = new Error((data as { error?: string })?.error ?? `HTTP ${res.status}`) as Error & {
       remainingMs?: number;
       status?: number;
+      errorKey?: string;
     };
     err.remainingMs = (data as { remainingMs?: number })?.remainingMs;
+    err.errorKey = (data as { errorKey?: string })?.errorKey;
     err.status = res.status;
     throw err;
   }
@@ -41,11 +43,11 @@ export const api = {
       `/api/user/${address}`
     ),
 
-  mine: (address: string, prompt: string) =>
+  mine: (address: string, prompt: string, lang: "id" | "en" = "id") =>
     jsonFetch<MineResult & { refCommission?: number }>("/api/mine", {
       method: "POST",
       headers: JSON_HEADERS,
-      body: JSON.stringify({ address, prompt }),
+      body: JSON.stringify({ address, prompt, lang }),
     }),
 
   boost: (address: string, action: "upgrade" | "checkin") =>

@@ -5,9 +5,11 @@ import { Users, Copy, Check, Share2, Coins, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GAME, TOKEN, fmtNum } from "@/lib/game-config";
 import { useGameStore } from "@/lib/store";
+import { useT } from "@/lib/i18n";
 
 export default function FriendsTab() {
   const user = useGameStore((s) => s.user);
+  const { t, lang } = useT();
   const [copied, setCopied] = useState<"code" | "link" | null>(null);
 
   const shareLink = typeof window !== "undefined" && user ? `${window.location.origin}/?ref=${user.refCode}` : "";
@@ -24,7 +26,7 @@ export default function FriendsTab() {
 
   const share = useCallback(async () => {
     if (!user) return;
-    const text = `⛏️ Yuk tambang ${TOKEN.symbol} (AGENTIC MINER) di BNB Chain pakai Prompt AI! Pakai kode undanganku ${user.refCode} dan dapatkan bonus awal. ${shareLink}`;
+    const text = t("shareText", { sym: TOKEN.symbol, code: user.refCode, link: shareLink });
     try {
       if (navigator.share) {
         await navigator.share({ title: "AGENTIC MINER", text, url: shareLink });
@@ -34,7 +36,7 @@ export default function FriendsTab() {
     } catch {
       /* dibatalkan user */
     }
-  }, [user, shareLink, copy]);
+  }, [user, shareLink, copy, t]);
 
   if (!user) return null;
 
@@ -45,20 +47,20 @@ export default function FriendsTab() {
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-bold flex items-center gap-1.5">
-              <Users className="h-4 w-4 text-[#C994F7]" /> Tim Penambang
+              <Users className="h-4 w-4 text-[#C994F7]" /> {t("minerTeam")}
             </h3>
-            <p className="text-xs text-[#848E9C] mt-0.5">Ajak teman, panen komisi otomatis</p>
+            <p className="text-xs text-[#848E9C] mt-0.5">{t("inviteDesc")}</p>
           </div>
           <Coins className="h-8 w-8 text-[#C994F7]" />
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2.5">
           <div className="rounded-xl bg-[#0B0E11] border border-[#2B3139] p-3.5">
-            <p className="text-[10px] text-[#848E9C] uppercase tracking-wide">Total Komisi</p>
-            <p className="text-lg font-extrabold text-[#20B26C] tabular-nums mt-0.5">{fmtNum(user.refEarnings)}</p>
+            <p className="text-[10px] text-[#848E9C] uppercase tracking-wide">{t("totalCommission")}</p>
+            <p className="text-lg font-extrabold text-[#20B26C] tabular-nums mt-0.5">{fmtNum(user.refEarnings, 2, lang)}</p>
           </div>
           <div className="rounded-xl bg-[#0B0E11] border border-[#2B3139] p-3.5">
-            <p className="text-[10px] text-[#848E9C] uppercase tracking-wide">Kode Undangan</p>
+            <p className="text-[10px] text-[#848E9C] uppercase tracking-wide">{t("inviteCode")}</p>
             <p className="text-lg font-extrabold text-[#F0B90B] tracking-widest mt-0.5">{user.refCode}</p>
           </div>
         </div>
@@ -67,10 +69,10 @@ export default function FriendsTab() {
       {/* Bagikan */}
       <div className="rounded-2xl border border-[#2B3139] bg-[#181A20] p-5 space-y-3">
         <h3 className="text-sm font-bold flex items-center gap-1.5">
-          <Share2 className="h-4 w-4 text-[#F0B90B]" /> Bagikan Tautan Undangan
+          <Share2 className="h-4 w-4 text-[#F0B90B]" /> {t("shareTitle")}
         </h3>
         <div className="flex items-center gap-2 rounded-xl bg-[#0B0E11] border border-[#2B3139] px-3 py-2.5">
-          <span className="flex-1 truncate text-xs font-mono text-[#848E9C]">{shareLink || "memuat..."}</span>
+          <span className="flex-1 truncate text-xs font-mono text-[#848E9C]">{shareLink || "..."}</span>
           <button
             onClick={() => copy(shareLink, "link")}
             className="text-[#848E9C] hover:text-[#F0B90B] transition-colors"
@@ -86,13 +88,13 @@ export default function FriendsTab() {
             className="flex-1 h-11 rounded-xl border-[#2B3139] bg-[#0B0E11] text-sm font-bold hover:bg-[#1E2329]"
           >
             {copied === "code" ? <Check className="mr-1.5 h-4 w-4 text-[#20B26C]" /> : <Copy className="mr-1.5 h-4 w-4" />}
-            {copied === "code" ? "Tersalin!" : `Salin Kode: ${user.refCode}`}
+            {copied === "code" ? t("copied") : t("copyCode", { code: user.refCode })}
           </Button>
           <Button
             onClick={share}
             className="flex-1 h-11 rounded-xl bg-gradient-to-r from-[#F8D33A] to-[#F0B90B] font-bold text-[#0B0E11] hover:opacity-90"
           >
-            <Share2 className="mr-1.5 h-4 w-4" /> Bagikan
+            <Share2 className="mr-1.5 h-4 w-4" /> {t("share")}
           </Button>
         </div>
       </div>
@@ -100,24 +102,16 @@ export default function FriendsTab() {
       {/* Cara kerja referral */}
       <div className="rounded-2xl border border-[#2B3139] bg-[#181A20] p-5">
         <h3 className="text-sm font-bold flex items-center gap-1.5 mb-3">
-          <Gift className="h-4 w-4 text-[#20B26C]" /> Cara Kerja Referral
+          <Gift className="h-4 w-4 text-[#20B26C]" /> {t("howReferral")}
         </h3>
         <div className="space-y-3">
-          <RefStep
-            n={1}
-            title="Bagikan kode / tautan"
-            desc="Kirim kode undangan atau tautan ke teman, grup Telegram, dan medsos kamu."
-          />
+          <RefStep n={1} title={t("ref1Title")} desc={t("ref1Desc")} />
           <RefStep
             n={2}
-            title={`Teman dapat +komisi bergulir`}
-            desc={`Saat teman masuk dengan kodemu, kamu langsung dapat bonus ${fmtNum(GAME.referrerJoinBonus, 0)} ${TOKEN.symbol}.`}
+            title={t("ref2Title")}
+            desc={t("ref2Desc", { n: fmtNum(GAME.referrerJoinBonus, 0, lang), sym: TOKEN.symbol })}
           />
-          <RefStep
-            n={3}
-            title="Komisi 5% selamanya"
-            desc={`Kamu menerima ${GAME.refCommission * 100}% dari setiap reward tambang temanmu — otomatis masuk saldo.`}
-          />
+          <RefStep n={3} title={t("ref3Title")} desc={t("ref3Desc", { p: GAME.refCommission * 100 })} />
         </div>
       </div>
     </div>

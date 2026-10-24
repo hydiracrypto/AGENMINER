@@ -1,7 +1,7 @@
-// POST /api/withdraw — Ajukan penarikan AGENMINER ke wallet
+// POST /api/withdraw — Ajukan penarikan AGENMINER ke wallet (TANPA minimal)
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { GAME, TOKEN, isValidEvmAddress } from "@/lib/game-config";
+import { TOKEN, isValidEvmAddress } from "@/lib/game-config";
 import { toPublicUser } from "@/lib/user-utils";
 
 export async function POST(req: NextRequest) {
@@ -11,24 +11,19 @@ export async function POST(req: NextRequest) {
     const amount = Number(body?.amount);
 
     if (!isValidEvmAddress(address)) {
-      return NextResponse.json({ error: "Alamat wallet tidak valid" }, { status: 400 });
+      return NextResponse.json({ error: "Alamat wallet tidak valid", errorKey: "invalid_address" }, { status: 400 });
     }
     if (!Number.isFinite(amount) || amount <= 0) {
-      return NextResponse.json({ error: "Jumlah tidak valid" }, { status: 400 });
+      return NextResponse.json({ error: "Jumlah tidak valid", errorKey: "invalid_amount" }, { status: 400 });
     }
-    if (amount < GAME.minWithdraw) {
-      return NextResponse.json(
-        { error: `Minimal penarikan ${GAME.minWithdraw.toLocaleString("id-ID")} ${TOKEN.symbol}` },
-        { status: 400 }
-      );
-    }
+    // TANPA minimal penarikan — berapapun jumlahnya selama saldo mencukupi
 
     const user = await db.user.findUnique({ where: { walletAddress: address } });
     if (!user) {
-      return NextResponse.json({ error: "Akun tidak ditemukan" }, { status: 404 });
+      return NextResponse.json({ error: "Akun tidak ditemukan", errorKey: "account_missing" }, { status: 404 });
     }
     if (user.balance < amount) {
-      return NextResponse.json({ error: "Saldo tidak cukup" }, { status: 400 });
+      return NextResponse.json({ error: "Saldo tidak cukup", errorKey: "insufficient" }, { status: 400 });
     }
 
     const updated = await db.$transaction(async (tx) => {
@@ -55,6 +50,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("[withdraw]", err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return NextResponse.json({ error: "Server error", errorKey: "server_error" }, { status: 500 });
   }
 }

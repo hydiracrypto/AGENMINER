@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AGENTIC MINER — Tambang AGENMINER dengan Prompt AI di BNB Chain",
+  title: "AGENTIC MINER — Mine AGENMINER with AI Prompts on BNB Chain",
   description:
-    "Game mining token AGENMINER (100 juta suplai) di BNB Smart Chain. Masuk dengan Binance Agentic Wallet, tambang token lewat prompt AI, upgrade rig, ajak teman, dan tarik reward ke wallet kamu.",
+    "AGENTIC MINER (AGENMINER) mining game on BNB Smart Chain mainnet — 100M fixed supply. Sign in with Binance Agentic Wallet, mine tokens with AI prompts, upgrade your rig, invite friends, withdraw with NO minimum. | Game mining AGENMINER di BNB Smart Chain — masuk dengan Binance Agentic Wallet, tambang via prompt AI, penarikan tanpa minimal.",
   keywords: [
     "AGENTIC MINER",
     "AGENMINER",
@@ -26,11 +26,15 @@ export const metadata: Metadata = {
     "tap to earn",
     "AI mining",
     "BEP-20",
+    "no minimum withdrawal",
+    "crypto countries",
   ],
   openGraph: {
-    title: "AGENTIC MINER ⛏️",
-    description: "Tambang token AGENMINER via Prompt AI di BNB Smart Chain — masuk dengan Binance Agentic Wallet!",
+    title: "AGENTIC MINER ⛏️ — AI Prompt Mining on BNB Chain",
+    description:
+      "Mine AGENMINER tokens with AI prompts on BNB Smart Chain — sign in with Binance Agentic Wallet. No minimum withdrawal!",
     type: "website",
+    images: ["/logo.png"],
   },
 };
 

@@ -12,7 +12,7 @@ export interface MiningVerdict {
   response: string; // respons singkat mining engine
 }
 
-const SYSTEM_PROMPT = `Kamu adalah "AGENTIC MINER AI" — mesin penambangan token AGENMINER di game mining di BNB Smart Chain.
+const SYSTEM_PROMPT_BASE = `Kamu adalah "AGENTIC MINER AI" — mesin penambangan token AGENMINER di game mining di BNB Smart Chain.
 Tugas: evaluasi "prompt penambangan" yang dikirim penambang, lalu hasilkan narasi hasil tambang yang seru.
 
 Kriteria skor (0-100):
@@ -23,7 +23,12 @@ Kriteria skor (0-100):
 - Prompt kreatif, detail, imajinatif → skor tinggi (70-100)
 
 PENTING: Balas HANYA dengan JSON valid, TANPA teks lain, TANPA markdown:
-{"score": <integer 0-100>, "summary": "<1 kalimat seru bahasa Indonesia tentang apa yang berhasil ditambang dari prompt user>", "response": "<respons mining engine maksimal 150 karakter, bahasa Indonesia, penuh semangat, sebutkan hash/blok/gigahash untuk keseruan>"}`;
+{"score": <integer 0-100>, "summary": "<1 kalimat seru tentang apa yang berhasil ditambang dari prompt user>", "response": "<respons mining engine maksimal 150 karakter, penuh semangat, sebutkan hash/blok/gigahash untuk keseruan>"}`;
+
+const LANG_INSTRUCTION: Record<"id" | "en", string> = {
+  id: "Tulis summary dan response dalam BAHASA INDONESIA.",
+  en: "Write summary and response in ENGLISH.",
+};
 
 function clampScore(n: number): number {
   if (!Number.isFinite(n)) return 50;
@@ -51,7 +56,7 @@ function extractJson(raw: string): MiningVerdict | null {
 }
 
 /** Heuristik cadangan kalau AI gagal dipanggil */
-function fallbackVerdict(prompt: string): MiningVerdict {
+function fallbackVerdict(prompt: string, lang: "id" | "en"): MiningVerdict {
   const len = prompt.trim().length;
   const words = prompt.trim().split(/\s+/).length;
   let score = 30;
@@ -61,6 +66,13 @@ function fallbackVerdict(prompt: string): MiningVerdict {
   if (words > 14) score += 10;
   const lower = prompt.toLowerCase();
   if (/(ai|crypto|token|blockchain|mining|bnb|chain|neural|quantum)/.test(lower)) score += 10;
+  if (lang === "en") {
+    return {
+      score: clampScore(score),
+      summary: "Neural drill broke through the block — AGENMINER crystals are safely stored in your wallet!",
+      response: "⛏️ Hashrate stable, block locked. Keep mining, miner!",
+    };
+  }
   return {
     score: clampScore(score),
     summary: "Drill neural berhasil memecah blok — kristal AGENMINER tersimpan aman di dompet Anda!",
@@ -71,13 +83,14 @@ function fallbackVerdict(prompt: string): MiningVerdict {
 /**
  * Evaluasi prompt penambangan via AI.
  * Selalu mengembalikan verdict (fallback heuristik bila AI error).
+ * Narasi mengikuti bahasa user: "id" (Indonesia) atau "en" (English).
  */
-export async function evaluateMiningPrompt(prompt: string): Promise<MiningVerdict> {
+export async function evaluateMiningPrompt(prompt: string, lang: "id" | "en" = "id"): Promise<MiningVerdict> {
   try {
     const zai = await ZAI.create();
     const completionPromise = zai.chat.completions.create({
       messages: [
-        { role: "assistant", content: SYSTEM_PROMPT },
+        { role: "assistant", content: `${SYSTEM_PROMPT_BASE}\n\n${LANG_INSTRUCTION[lang]}` },
         { role: "user", content: prompt.slice(0, 500) },
       ],
       thinking: { type: "disabled" },
@@ -91,9 +104,9 @@ export async function evaluateMiningPrompt(prompt: string): Promise<MiningVerdic
     const completion = await Promise.race([completionPromise, timeoutPromise]);
     const raw = completion.choices[0]?.message?.content ?? "";
     const verdict = extractJson(raw);
-    return verdict ?? fallbackVerdict(prompt);
+    return verdict ?? fallbackVerdict(prompt, lang);
   } catch (err) {
     console.error("[ai-engine] evaluateMiningPrompt failed:", err);
-    return fallbackVerdict(prompt);
+    return fallbackVerdict(prompt, lang);
   }
 }

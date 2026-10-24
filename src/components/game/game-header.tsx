@@ -3,15 +3,18 @@
 import { Coins, Flame, Zap } from "lucide-react";
 import { TOKEN, fmtNum, truncateAddress } from "@/lib/game-config";
 import { useGameStore } from "@/lib/store";
+import { useT } from "@/lib/i18n";
+import LanguageToggle from "@/components/game/language-toggle";
 
 export default function GameHeader() {
   const user = useGameStore((s) => s.user);
   const setConnectOpen = useGameStore((s) => s.setConnectOpen);
+  const { t, lang } = useT();
   if (!user) return null;
 
   return (
     <header className="sticky top-0 z-40 bg-[#0B0E11]/95 backdrop-blur border-b border-[#2B3139]">
-      <div className="max-w-md mx-auto px-4 py-3 flex items-center gap-3">
+      <div className="max-w-md mx-auto px-4 py-3 flex items-center gap-2">
         {/* Profil */}
         <button
           onClick={() => setConnectOpen(true)}
@@ -22,7 +25,7 @@ export default function GameHeader() {
             {user.avatar}
           </span>
           <span className="min-w-0 text-left">
-            <span className="block text-sm font-bold truncate max-w-[130px]">{user.username}</span>
+            <span className="block text-sm font-bold truncate max-w-[110px]">{user.username}</span>
             <span className="block text-[11px] text-[#848E9C] font-mono">{truncateAddress(user.walletAddress)}</span>
           </span>
         </button>
@@ -30,7 +33,7 @@ export default function GameHeader() {
         <div className="flex-1" />
 
         {/* Streak */}
-        <div className="flex items-center gap-1 rounded-full bg-[#1E2329] px-2.5 py-1.5" title="Streak harian">
+        <div className="flex items-center gap-1 rounded-full bg-[#1E2329] px-2.5 py-1.5" title={t("dailyStreak")}>
           <Flame className="h-3.5 w-3.5 text-[#F6465D]" />
           <span className="text-xs font-bold">{user.streak}</span>
         </div>
@@ -38,11 +41,14 @@ export default function GameHeader() {
         {/* Power */}
         <div
           className="flex items-center gap-1 rounded-full bg-[#1E2329] px-2.5 py-1.5"
-          title="Mining Power multiplier"
+          title={t("powerMult")}
         >
           <Zap className="h-3.5 w-3.5 text-[#F0B90B]" />
           <span className="text-xs font-bold">x{user.miningPower}</span>
         </div>
+
+        {/* Toggle bahasa ID ⇄ EN */}
+        <LanguageToggle variant="compact" />
       </div>
 
       {/* Saldo */}
@@ -53,8 +59,8 @@ export default function GameHeader() {
               <Coins className="h-5 w-5" />
             </span>
             <div>
-              <p className="text-[10px] uppercase tracking-wide text-[#848E9C]">Saldo {TOKEN.symbol}</p>
-              <p className="text-lg font-extrabold leading-none tabular-nums">{fmtNum(user.balance)}</p>
+              <p className="text-[10px] uppercase tracking-wide text-[#848E9C]">{t("balance", { sym: TOKEN.symbol })}</p>
+              <p className="text-lg font-extrabold leading-none tabular-nums">{fmtNum(user.balance, 2, lang)}</p>
             </div>
           </div>
           <span className="rounded-full bg-[#0B0E11] px-2.5 py-1 text-[10px] font-semibold text-[#F0B90B] border border-[#F0B90B]/30">

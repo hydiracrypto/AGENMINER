@@ -5,15 +5,17 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Bot, TrendingUp, X } from "lucide-react";
 import { TOKEN, fmtNum } from "@/lib/game-config";
+import { useT } from "@/lib/i18n";
 import type { MineResult } from "@/lib/types";
 
 export default function RewardModal({ result, onClose }: { result: MineResult | null; onClose: () => void }) {
+  const { t, lang } = useT();
   return (
     <Dialog open={result !== null} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-sm rounded-2xl border-[#F0B90B]/40 bg-[#181A20] text-[#EAECEF] p-0 gap-0 overflow-hidden">
         {result && (
           <div className="relative">
-            <DialogTitle className="sr-only">Hasil Penambangan {TOKEN.symbol}</DialogTitle>
+            <DialogTitle className="sr-only">{t("miningResult", { sym: TOKEN.symbol })}</DialogTitle>
             {/* glow atas */}
             <div className="absolute top-0 left-1/2 -translate-x-1/2 h-40 w-40 rounded-full bg-[#F0B90B]/25 blur-3xl pointer-events-none" />
 
@@ -30,9 +32,9 @@ export default function RewardModal({ result, onClose }: { result: MineResult | 
                 initial={{ scale: 0.3, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: "spring", stiffness: 260, damping: 18 }}
-                className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-[#F8D33A] to-[#F0B90B] shadow-[0_0_50px_rgba(240,185,11,0.5)]"
+                className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-[#F0B90B]/60 bg-[#0B0E11] shadow-[0_0_50px_rgba(240,185,11,0.5)]"
               >
-                <span className="text-4xl">⛏️</span>
+                <img src="/logo.png" alt="AGENTIC MINER" className="h-full w-full object-cover" />
               </motion.div>
 
               <motion.p
@@ -41,15 +43,15 @@ export default function RewardModal({ result, onClose }: { result: MineResult | 
                 transition={{ delay: 0.15 }}
                 className="mt-4 text-3xl font-extrabold text-[#F0B90B] tabular-nums"
               >
-                +{fmtNum(result.reward)} {TOKEN.symbol}
+                +{fmtNum(result.reward, 2, lang)} {TOKEN.symbol}
               </motion.p>
-              <p className="text-xs text-[#848E9C] mt-1">Berhasil ditambang ke saldo game kamu</p>
+              <p className="text-xs text-[#848E9C] mt-1">{t("minedToBalance")}</p>
 
               {/* Skor AI */}
               <div className="mt-5 w-full space-y-2">
                 <div className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-1.5 text-[#848E9C]">
-                    <TrendingUp className="h-3.5 w-3.5 text-[#C994F7]" /> Skor Kreativitas AI
+                    <TrendingUp className="h-3.5 w-3.5 text-[#C994F7]" /> {t("aiScore")}
                   </span>
                   <span className="font-extrabold text-[#C994F7] tabular-nums">{result.score}/100</span>
                 </div>
@@ -77,7 +79,7 @@ export default function RewardModal({ result, onClose }: { result: MineResult | 
                 onClick={onClose}
                 className="mt-5 w-full h-11 rounded-xl bg-gradient-to-r from-[#F8D33A] to-[#F0B90B] font-extrabold text-[#0B0E11] hover:opacity-90"
               >
-                <Sparkles className="mr-1.5 h-4 w-4" /> Lanjut Menambang
+                <Sparkles className="mr-1.5 h-4 w-4" /> {t("keepMining")}
               </Button>
             </div>
           </div>

@@ -10,26 +10,27 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const address = String(body?.address ?? "").trim().toLowerCase();
     const prompt = String(body?.prompt ?? "").trim();
+    const lang: "id" | "en" = body?.lang === "en" ? "en" : "id";
 
     if (!isValidEvmAddress(address)) {
-      return NextResponse.json({ error: "Alamat wallet tidak valid" }, { status: 400 });
+      return NextResponse.json({ error: "Alamat wallet tidak valid", errorKey: "invalid_address" }, { status: 400 });
     }
     if (prompt.length < GAME.minPromptLen) {
       return NextResponse.json(
-        { error: `Prompt terlalu pendek. Minimal ${GAME.minPromptLen} karakter.` },
+        { error: `Prompt terlalu pendek. Minimal ${GAME.minPromptLen} karakter.`, errorKey: "prompt_short" },
         { status: 400 }
       );
     }
     if (prompt.length > GAME.maxPromptLen) {
       return NextResponse.json(
-        { error: `Prompt terlalu panjang. Maksimal ${GAME.maxPromptLen} karakter.` },
+        { error: `Prompt terlalu panjang. Maksimal ${GAME.maxPromptLen} karakter.`, errorKey: "prompt_long" },
         { status: 400 }
       );
     }
 
     const user = await db.user.findUnique({ where: { walletAddress: address } });
     if (!user) {
-      return NextResponse.json({ error: "Akun tidak ditemukan, silakan login ulang" }, { status: 404 });
+      return NextResponse.json({ error: "Akun tidak ditemukan, silakan login ulang", errorKey: "account_missing" }, { status: 404 });
     }
 
     // ── Cek cooldown ──
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
       const readyAt = user.lastMineAt.getTime() + GAME.cooldownMs;
       if (now < readyAt) {
         return NextResponse.json(
-          { error: "Rig masih mendinginkan. Tunggu sebentar!", remainingMs: readyAt - now },
+          { error: "Rig masih mendinginkan. Tunggu sebentar!", errorKey: "cooldown", remainingMs: readyAt - now },
           { status: 429 }
         );
       }
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
     });
     if (recent.some((m) => m.prompt.toLowerCase().replace(/\s+/g, " ") === normalized)) {
       return NextResponse.json(
-        { error: "Prompt ini sudah kamu pakai baru-baru ini. Coba ide baru yang lebih kreatif!" },
+        { error: "Prompt ini sudah kamu pakai baru-baru ini. Coba ide baru yang lebih kreatif!", errorKey: "duplicate_prompt" },
         { status: 400 }
       );
     }
@@ -64,13 +65,13 @@ export async function POST(req: NextRequest) {
     const globalMined = agg._sum.totalMined ?? 0;
     if (globalMined >= TOKEN.miningPool) {
       return NextResponse.json(
-        { error: "Pool mining sudah habis! Terima kasih sudah menjadi bagian dari AGENTIC MINER." },
+        { error: "Pool mining sudah habis!", errorKey: "pool_empty" },
         { status: 409 }
       );
     }
 
-    // ── Evaluasi prompt via AI ──
-    const verdict = await evaluateMiningPrompt(prompt);
+    // ── Evaluasi prompt via AI (narasi mengikuti bahasa user) ──
+    const verdict = await evaluateMiningPrompt(prompt, lang);
 
     // ── Update streak harian ──
     const newStreak = nextStreak(user);

@@ -20,3 +20,22 @@ Stage Summary:
 - Game AGENMINER lengkap & terverifikasi: login wallet (Binance Agentic Wallet / EIP-6963 / demo), mining prompt AI (z-ai-sdk), ekonomi 100M, referral, leaderboard, boost, withdraw (pending sampai kontrak deploy).
 - Kontrak BEP-20 siap deploy — setelah deploy isi contractAddress di src/lib/game-config.ts.
 - Artefak: src/lib/*, src/app/api/*, src/components/game/*, contracts/AgenticMiner.sol, contracts/DEPLOY_GUIDE.md, db/custom.db.
+
+---
+Task ID: 2
+Agent: Z.ai (main agent)
+Task: Tambah bahasa Inggris (ID⇄EN), bagian Negara Pengguna Kripto Terbanyak, logo AGENTIC MINER, dan penarikan tanpa minimal (no minimum withdrawal).
+
+Work Log:
+- Generate logo AGENTIC MINER via z-ai image (perisai emas + pickaxe + chip AI) → public/logo.png + src/app/icon.png (favicon).
+- Buat src/lib/i18n.ts: kamus 140+ string ID/EN, store zustand persist (agenminer-lang), hook useT(), translate() dengan template {vars}.
+- game-config.ts: minWithdraw 0 (tanpa minimal), fmtNum locale-aware (id-ID/en-US), PROMPT_EXAMPLES dwibahasa + randomExamples(lang).
+- Komponen baru: language-toggle.tsx (pill untuk login, compact globe untuk header), crypto-countries.tsx (top 10 negara kripto, flag, pengguna, % populasi, sumber Triple-A & Chainalysis 2024).
+- Semua screen diterjemahkan: login-screen (logo + toggle + preview negara top 5), game-header (toggle ID⇄EN + saldo), mine-tab, boost-tab, friends-tab, rank-tab (+negara top 10), wallet-tab (badge NO MINIMUM + tombol MAX), bottom-nav, reward-modal (logo), wallet-connect-modal.
+- API: errorKey ditambahkan ke /api/mine, /api/withdraw, /api/boost agar pesan error bisa dilokalkan di client; /api/withdraw hapus validasi minimal; /api/mine terima param lang; ai-engine narasi AI ikuti bahasa user (ID/EN) + fallback dwibahasa.
+- layout.tsx: metadata bilingual + OG image logo.
+- Verifikasi agent-browser: login screen ID/EN OK, toggle ID⇄EN OK (real-time), login demo OK, mining EN OK (+80 AGENMINER, skor 85, narasi AI bahasa Inggris), withdraw 1 token (tanpa minimal) OK saldo 271→270, negara kripto tampil di login & rank (ID/EN), favicon aktif. Lint bersih, tanpa error console.
+
+Stage Summary:
+- 4 fitur baru selesai & terverifikasi: (1) bahasa Inggris + toggle ID⇄EN persist, (2) bagian Negara Pengguna Kripto Terbanyak, (3) logo AGENTIC MINER di login/reward/favicon, (4) penarikan TANPA minimal + tombol MAX.
+- Screenshot bukti di download/: screenshot-login-v2.png, screenshot-login-en.png, screenshot-mine-en.png, screenshot-wallet-en.png, screenshot-withdraw-1token.png, screenshot-rank-en-countries.png, screenshot-reward-en.png, screenshot-mine-id.png.
