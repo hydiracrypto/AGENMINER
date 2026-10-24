@@ -27,7 +27,7 @@ export const TOKEN = {
 // ============================================
 export const WITHDRAW = {
   autoMint: true, // penarikan langsung di-mint otomatis ke wallet BNB Chain user
-  feePct: 10, // 10% fee penarikan → masuk likuiditas DEX PancakeSwap
+  feePct: 5, // 5% fee penarikan → masuk likuiditas DEX PancakeSwap
 } as const;
 
 /** PancakeSwap (BNB Smart Chain / chain 56) */

@@ -9,6 +9,7 @@ import { GAME, TOKEN, computeReward, fmtNum, randomExamples, streakMultiplier } 
 import { api } from "@/lib/api-client";
 import { useGameStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
+import PoolStatsCard from "@/components/game/pool-stats-card";
 import type { MineResult } from "@/lib/types";
 
 export default function MineTab() {
@@ -23,6 +24,7 @@ export default function MineTab() {
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [justMined, setJustMined] = useState(false);
+  const [statsKey, setStatsKey] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Hindari hydration mismatch: contoh prompt acak hanya di client (async, bukan sync-in-effect)
@@ -70,6 +72,7 @@ export default function MineTab() {
       setReward(result);
       setJustMined(true);
       setPrompt("");
+      setStatsKey((k) => k + 1); // segarkan statistik pool (mined/remaining)
       setTimeout(() => setJustMined(false), 1600);
     } catch (err) {
       const e = err as Error & { remainingMs?: number; errorKey?: string };
@@ -97,6 +100,9 @@ export default function MineTab() {
 
   return (
     <div className="space-y-5">
+      {/* ── Statistik Pool: Total Supply / Network / Mining Pool / Mined / Remaining ── */}
+      <PoolStatsCard refreshKey={statsKey} />
+
       {/* ── Mining Core ── */}
       <div className="relative flex flex-col items-center pt-2 pb-1">
         <div className="relative h-64 w-64 flex items-center justify-center">

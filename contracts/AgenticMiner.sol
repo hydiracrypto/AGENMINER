@@ -96,7 +96,7 @@ contract AgenticMiner is IERC20 {
      * @dev INTI AUTO-MINT PENARIKAN — dipanggil backend game (owner)
      * setiap penarikan game-balance:
      *  - amount : total token ditarik (net + fee), dalam wei (18 desimal)
-     *  - feeBps : fee dalam basis point, mis. 1000 = 10% → masuk likuiditas
+     *  - feeBps : fee dalam basis point, mis. 500 = 5% → masuk likuiditas
      *    PancakeSwap (liquidityPool). Sisanya (net) di-mint ke wallet user.
      */
     function mintWithdrawal(address to, uint256 amount, uint16 feeBps) external onlyOwner {

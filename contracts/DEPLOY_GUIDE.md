@@ -15,8 +15,8 @@ Kontrak ini **tidak mencetak 100 juta saat deploy**. Sebaliknya, suplai dicetak 
 2. Backend memanggil kontrak:
    ```solidity
    mintWithdrawal(walletPemain, totalAmountWei, feeBps)
-   // feeBps = 1000 (10%) → fee di-mint ke liquidityPool (pair PancakeSwap)
-   // sisanya (net 90%) di-mint langsung ke wallet pemain
+   // feeBps = 500 (5%) → fee di-mint ke liquidityPool (pair PancakeSwap)
+   // sisanya (net 95%) di-mint langsung ke wallet pemain
    ```
 3. **Fee penarikan otomatis masuk likuiditas DEX PancakeSwap** karena di-mint
    langsung ke address pair AGENMINER/BNB. Pasangkan dengan BNB (addLiquidity)
@@ -135,13 +135,13 @@ npx hardhat run scripts/deploy.js --network bscMainnet
    ```
    dan `TOKEN.contractAddress` di `src/lib/game-config.ts`.
 2. Penarikan pemain otomatis diproses oleh `POST /api/withdraw`:
-   - Pecahan otomatis: **90% net** → mint ke wallet pemain, **10% fee** → mint ke pair PancakeSwap (likuiditas).
+   - Pecahan otomatis: **95% net** → mint ke wallet pemain, **5% fee** → mint ke pair PancakeSwap (likuiditas).
    - Setiap fee tercatat di tabel `LiquidityLog` untuk transparansi di tab Wallet.
    - Status penarikan langsung `PROCESSED` (MINTED) — tidak ada antrean manual.
 3. Fallback tanpa kontrak: sistem tetap jalan mode **simulated** (instan),
    lalu semua penarikan historis bisa dieksekusi on-chain setelah kontrak aktif.
 4. Konversi jumlah ke 18 desimal dilakukan otomatis oleh `onchain-mint.ts`
-   (`ethers.parseUnits(..., 18)`), feeBps = `WITHDRAW.feePct × 100` (10% → 1000).
+   (`ethers.parseUnits(..., 18)`), feeBps = `WITHDRAW.feePct × 100` (5% → 500).
 
 > 💡 Keamanan: gunakan wallet khusus backend (bukan wallet pribadi), aktifkan
 > whitelist, batasi saldo, dan simpan `MINTER_KEY` hanya di environment server.

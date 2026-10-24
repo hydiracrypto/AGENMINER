@@ -53,7 +53,7 @@ export async function mintWithdrawalOnchain(
       (netTokens + feeTokens).toFixed(TOKEN.decimals),
       TOKEN.decimals
     );
-    const feeBps = Math.round(WITHDRAW.feePct * 100); // 10% → 1000 bps
+    const feeBps = Math.round(WITHDRAW.feePct * 100); // 5% → 500 bps
 
     const tx = await contract.mintWithdrawal(to, amountWei, feeBps);
     const receipt = await tx.wait();

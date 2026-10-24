@@ -66,3 +66,21 @@ Work Log:
 Stage Summary:
 - 3 permintaan selesai & terverifikasi: (1) sumber data dihapus dari kartu negara, (2) bahasa sekarang hanya 中文 (default) + EN — Indonesia dihapus total dari UI/API/AI, (3) penarikan otomatis mint instan ke wallet BNB Chain dengan fee 10% tercatat masuk likuiditas PancakeSwap V2 (LiquidityLog + kartu akumulasi di Wallet).
 - Kontrak baru siap deploy on-demand mint; setelah deploy isi contractAddress + PANCAKESWAP.pair + env MINTER_KEY → mode onchain aktif otomatis.
+
+---
+Task ID: 4
+Agent: Z.ai (main agent)
+Task: (1) Tambah tampilan Total Supply 100,000,000 AGENMINER / Network BNB Chain / Mining Pool 70,000,000 / sudah ditambang / tersisa di tab Mine (sesuai screenshot user) agar orang tahu berapa yang sudah & belum ditambang, (2) fee penarikan diubah 10% → 5%.
+
+Work Log:
+- game-config.ts: WITHDRAW.feePct 10 → 5 (satu sumber kebenaran — otomatis menyebar ke wallet-tab, stats API, withdraw API, onchain-mint).
+- onchain-mint.ts: komentar feeBps diperbarui (5% → 500 bps); kontrak AgenticMiner.sol: komentar "mis. 500 = 5%"; DEPLOY_GUIDE.md: feeBps 500 (5%), pecahan 95% net / 5% fee.
+- i18n.ts: keys baru poolStatsTitle (挖矿池统计 / Mining Pool Stats), minedOut (已挖出 / Mined), remainingLabel (剩余 / Remaining) — zh + en.
+- Komponen baru src/components/game/pool-stats-card.tsx (data-testid=pool-stats-card): judul + indikator LIVE (pulse), baris Total Supply 100,000,000 AGENMINER | Network BNB Chain, progress bar Mining Pool 70,000,000 + persentase, dua kotak: 已挖出 (hijau) & 剩余 — data live dari GET /api/stats (totalMined & poolRemaining), prop refreshKey untuk re-fetch.
+- mine-tab.tsx: PoolStatsCard dirender di PALING ATAS tab Mine (di atas mining core, sesuai screenshot user); state statsKey di-increment setelah mining sukses → statistik mined/remaining langsung ter-update.
+- login-screen.tsx: baris "已挖出 {totalMined} {sym} (x%)" ditambahkan di bawah progress bar kartu statistik.
+- Verifikasi agent-browser E2E: login screen zh menampilkan 总供应量 100,000,000 / 网络 BNB Chain / 挖矿池 70,000,000 / 已挖出 ✓; login demo → tab Mine kartu tampil: 挖矿池统计 LIVE | 100,000,000 AGENMINER | BNB Chain | 70,000,000 | 已挖出 326 | 剩余 69,999,674; mining prompt zh OK (+80, skor 85) → kartu AUTO-REFRESH ke 406 / 69,999,594 ✓; toggle EN OK (Mining Pool Stats / Total Supply / Network / Mined / Remaining); Wallet: preview 80 → 到账 76 / 手续费 5% -4 ✓; withdraw 100 > saldo → "余额不足" validasi OK; withdraw 50 → "已自动铸造 47.5 AGENMINER • 手续费 2.5 已注入 PancakeSwap 流动性", totalLiquidityAdded 5 → 7.5 ✓ (5% tepat); lint bersih, tanpa error console/dev.log.
+- Screenshot bukti di download/: v4-login-zh-poolstats.png, v4-mine-zh-top.png (kartu atas tab Mine zh), v4-mine-en-poolstats.png (EN), v4-mine-zh-poolstats-final.png, v4-mine-zh-poolstats.png.
+
+Stage Summary:
+- 2 permintaan selesai & terverifikasi: (1) tab Mine kini menampilkan kartu 挖矿池统计 LIVE — Total Supply 100,000,000 AGENMINER, Network BNB Chain, Mining Pool 70,000,000, 已挖出/Mined & 剩余/Remaining yang ter-update otomatis setiap mining (login screen juga menampilkan mined), (2) fee penarikan kini 5% (95% net di-mint ke wallet, 5% fee → likuiditas PancakeSwap) — terverifikasi E2E: 50 → 47.5 + 2.5.

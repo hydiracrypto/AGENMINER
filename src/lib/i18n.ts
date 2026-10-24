@@ -57,6 +57,9 @@ const ZH = {
   how2: "Agentic AI 评估你的提示词（0–100 分）并从矿池中结晶 {sym}。",
   how3: "奖励 = (25 + 评分×0.6) × 算力 × 连签加成 — 直接进入游戏余额。",
   how4: "在加速页提升算力，并把 {sym} 自动铸造提现到你的 BNB Chain 钱包。",
+  poolStatsTitle: "挖矿池统计",
+  minedOut: "已挖出",
+  remainingLabel: "剩余",
   // ── Mine errors ──
   errPromptShort: "提示词至少需要 {n} 个字符 — 写一个有创意的挖矿点子！",
   errPromptLong: "提示词最多 {n} 个字符。",
@@ -227,6 +230,9 @@ const EN: Record<keyof typeof ZH, string> = {
   how2: "Agentic AI evaluates your prompt (0–100) and crystallizes {sym} from the pool.",
   how3: "Reward = (25 + score×0.6) × Power × Streak Bonus — goes straight to your game balance.",
   how4: "Boost your Power in the Boost tab & auto-mint withdraw {sym} to your BNB Chain wallet.",
+  poolStatsTitle: "Mining Pool Stats",
+  minedOut: "Mined",
+  remainingLabel: "Remaining",
   // ── Mine errors ──
   errPromptShort: "Prompt must be at least {n} characters — write a creative mining idea!",
   errPromptLong: "Prompt must be at most {n} characters.",

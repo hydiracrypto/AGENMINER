@@ -142,6 +142,14 @@ export default function LoginScreen() {
                 style={{ width: `${Math.max(2, poolPct)}%` }}
               />
             </div>
+            {stats && (
+              <div className="mt-2 flex justify-between text-[11px]">
+                <span className="font-semibold text-[#20B26C]">
+                  {t("minedOut")} {fmtNum(stats.totalMined, 0, lang)} {TOKEN.symbol}
+                </span>
+                <span className="text-[#848E9C] tabular-nums">{poolPct.toFixed(2)}%</span>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-3 gap-2 pt-1">
