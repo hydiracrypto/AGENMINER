@@ -40,8 +40,10 @@ export default function RankTab() {
 
   return (
     <div className="space-y-4">
+      <div className="grid gap-4 lg:grid-cols-2 lg:items-start lg:gap-6">
+      <div className="space-y-4">
       {/* My rank card */}
-      <div className="rounded-2xl border border-[#F0B90B]/30 bg-gradient-to-br from-[#F0B90B]/12 to-[#181A20] p-5 flex items-center gap-4">
+      <div className="am-card rounded-2xl border border-[#F0B90B]/30 bg-gradient-to-br from-[#F0B90B]/12 to-[#181A20] p-5 flex items-center gap-4">
         <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#F0B90B]/15 text-2xl">
           <Trophy className="h-6 w-6 text-[#F0B90B]" />
         </span>
@@ -104,9 +106,11 @@ export default function RankTab() {
           </ul>
         )}
       </div>
+      </div>
 
-      {/* Negara dengan pengguna kripto terbanyak */}
+      {/* Negara dengan pengguna kripto terbanyak — kolom kanan desktop */}
       <CryptoCountries limit={10} />
+      </div>
     </div>
   );
 }

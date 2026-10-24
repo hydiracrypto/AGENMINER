@@ -34,7 +34,7 @@ export default function PoolStatsCard({ refreshKey = 0 }: { refreshKey?: number 
   const pct = Math.min(100, (mined / TOKEN.miningPool) * 100);
 
   return (
-    <div className="rounded-2xl border border-[#2B3139] bg-[#181A20] p-4" data-testid="pool-stats-card">
+    <div className="am-card rounded-2xl border border-[#2B3139] bg-[#181A20]/90 p-4 backdrop-blur" data-testid="pool-stats-card">
       {/* Judul + indikator LIVE */}
       <div className="mb-3 flex items-center justify-between">
         <h3 className="flex items-center gap-1.5 text-sm font-bold">

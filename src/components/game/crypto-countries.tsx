@@ -40,7 +40,7 @@ export default function CryptoCountries({ limit = 10 }: { limit?: number }) {
   const maxUsers = rows[0]?.users ?? 1;
 
   return (
-    <div className="rounded-2xl border border-[#2B3139] bg-[#181A20] p-5">
+    <div className="am-card rounded-2xl border border-[#2B3139] bg-[#181A20]/90 p-5 backdrop-blur">
       <h3 className="flex items-center gap-1.5 text-sm font-bold">
         <Globe2 className="h-4 w-4 text-[#20B26C]" />
         {t("countriesTitle")}

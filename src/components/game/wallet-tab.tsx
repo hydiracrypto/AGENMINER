@@ -115,8 +115,10 @@ export default function WalletTab() {
         <StatCard icon={<Users className="h-4 w-4 text-[#C994F7]" />} label={t("statRef")} value={fmtNum(user.refEarnings, 2, lang)} />
       </div>
 
+      {/* Tarik ke wallet + Likuiditas — grid desktop 2 kolom */}
+      <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
       {/* Tarik ke wallet — TANPA MINIMAL + AUTO MINT */}
-      <div className="rounded-2xl border border-[#20B26C]/40 bg-gradient-to-br from-[#20B26C]/8 to-[#181A20] p-5 space-y-3">
+      <div className="am-card rounded-2xl border border-[#20B26C]/40 bg-gradient-to-br from-[#20B26C]/8 to-[#181A20] p-5 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <h3 className="text-sm font-bold flex items-center gap-1.5">
             <Send className="h-4 w-4 text-[#F0B90B]" /> {t("withdrawTitle", { chain: TOKEN.chainShort })}
@@ -198,7 +200,7 @@ export default function WalletTab() {
       </div>
 
       {/* Likuiditas PancakeSwap dari fee penarikan */}
-      <div className="rounded-2xl border border-[#E8C4F7]/25 bg-gradient-to-br from-[#A855F7]/8 to-[#181A20] p-5">
+      <div className="am-card rounded-2xl border border-[#E8C4F7]/25 bg-gradient-to-br from-[#A855F7]/8 to-[#181A20] p-5">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold flex items-center gap-1.5">
             <Droplets className="h-4 w-4 text-[#C994F7]" /> {t("liquidityTitle")}
@@ -222,9 +224,12 @@ export default function WalletTab() {
         </div>
         {!stats?.totalLiquidityAdded && <p className="mt-2 text-[11px] text-[#848E9C]">{t("liquidityEmpty")}</p>}
       </div>
+      </div>
 
+      {/* Info kontrak + riwayat penarikan — grid desktop 2 kolom */}
+      <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
       {/* Info kontrak */}
-      <div className="rounded-2xl border border-[#2B3139] bg-[#181A20] p-5 space-y-2.5">
+      <div className="am-card rounded-2xl border border-[#2B3139] bg-[#181A20] p-5 space-y-2.5">
         <h3 className="text-sm font-bold">🪙 {t("tokenInfo", { sym: TOKEN.symbol })}</h3>
         <div className="space-y-2 text-xs">
           <div className="flex justify-between">
@@ -267,7 +272,7 @@ export default function WalletTab() {
 
       {/* Riwayat penarikan */}
       {withdrawals.length > 0 && (
-        <div className="rounded-2xl border border-[#2B3139] bg-[#181A20] p-5">
+        <div className="am-card rounded-2xl border border-[#2B3139] bg-[#181A20] p-5">
           <h3 className="text-sm font-bold mb-3 flex items-center gap-1.5">
             <History className="h-4 w-4 text-[#848E9C]" /> {t("withdrawHistory")}
           </h3>
@@ -308,9 +313,10 @@ export default function WalletTab() {
           </ul>
         </div>
       )}
+      </div>
 
       {/* Riwayat tambang */}
-      <div className="rounded-2xl border border-[#2B3139] bg-[#181A20] p-5">
+      <div className="am-card rounded-2xl border border-[#2B3139] bg-[#181A20] p-5">
         <h3 className="text-sm font-bold mb-3 flex items-center gap-1.5">
           <History className="h-4 w-4 text-[#848E9C]" /> {t("lastMines")}
         </h3>

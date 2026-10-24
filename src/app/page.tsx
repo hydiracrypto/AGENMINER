@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import GameHeader from "@/components/game/game-header";
 import LoginScreen from "@/components/game/login-screen";
 import WalletConnectModal from "@/components/game/wallet-connect-modal";
@@ -11,10 +11,13 @@ import FriendsTab from "@/components/game/friends-tab";
 import RankTab from "@/components/game/rank-tab";
 import WalletTab from "@/components/game/wallet-tab";
 import BottomNav from "@/components/game/bottom-nav";
+import SidebarNav from "@/components/game/sidebar-nav";
+import PageBackground from "@/components/game/page-background";
 import RewardModal from "@/components/game/reward-modal";
 import { useGameStore } from "@/lib/store";
 import { api } from "@/lib/api-client";
 import { clearSession, loadSession } from "@/lib/wallet";
+import { TOKEN } from "@/lib/game-config";
 
 export default function Page() {
   const user = useGameStore((s) => s.user);
@@ -74,13 +77,16 @@ export default function Page() {
 
   if (booting) {
     return (
-      <div className="min-h-screen bg-[#0B0E11] flex flex-col items-center justify-center gap-4">
-        <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
-          className="h-16 w-16 rounded-full border-4 border-[#2B3139] border-t-[#F0B90B]"
-        />
-        <p className="text-sm text-[#848E9C] font-semibold tracking-wide">AGENTIC MINER</p>
+      <div className="relative min-h-screen bg-[#0B0E11]">
+        <PageBackground />
+        <div className="relative z-10 flex min-h-screen flex-col items-center justify-center gap-4">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
+            className="h-16 w-16 rounded-full border-4 border-[#2B3139] border-t-[#F0B90B]"
+          />
+          <p className="text-sm font-semibold tracking-wide text-[#848E9C]">AGENTIC MINER</p>
+        </div>
       </div>
     );
   }
@@ -95,17 +101,48 @@ export default function Page() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0B0E11] text-[#EAECEF] flex flex-col">
-      <GameHeader />
+    <div className="relative min-h-screen bg-[#0B0E11] text-[#EAECEF]">
+      <PageBackground />
 
-      <main className="flex-1 w-full max-w-md mx-auto px-4 pt-4 pb-32">
-        {tab === "mine" && <MineTab />}
-        {tab === "boost" && <BoostTab />}
-        {tab === "friends" && <FriendsTab />}
-        {tab === "rank" && <RankTab />}
-        {tab === "wallet" && <WalletTab />}
-      </main>
+      {/* Sidebar desktop (lg+) */}
+      <SidebarNav />
 
+      {/* Kolom konten — digeser oleh sidebar di desktop */}
+      <div className="relative z-10 flex min-h-screen flex-col lg:pl-64">
+        <GameHeader />
+
+        <main className="mx-auto w-full max-w-md flex-1 px-4 pb-32 pt-4 md:max-w-2xl lg:max-w-6xl lg:px-8 lg:pb-12 lg:pt-6">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={tab}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+            >
+              {tab === "mine" && <MineTab />}
+              {tab === "boost" && <BoostTab />}
+              {tab === "friends" && <FriendsTab />}
+              {tab === "rank" && <RankTab />}
+              {tab === "wallet" && <WalletTab />}
+            </motion.div>
+          </AnimatePresence>
+        </main>
+
+        {/* Footer desktop profesional */}
+        <footer className="relative z-10 hidden border-t border-[#2B3139]/70 px-8 py-5 lg:block">
+          <div className="mx-auto flex max-w-6xl items-center justify-between text-[11px] text-[#5E6673]">
+            <p>
+              © {new Date().getFullYear()} AGENTIC MINER • {TOKEN.name} ({TOKEN.symbol}) — BEP-20
+            </p>
+            <p className="font-mono">
+              {TOKEN.chainShort} Mainnet • Chain ID {TOKEN.chainId} • Powered by Agentic AI
+            </p>
+          </div>
+        </footer>
+      </div>
+
+      {/* Navigasi bawah mobile (di bawah lg) */}
       <BottomNav />
       <WalletConnectModal open={connectOpen} onClose={() => setConnectOpen(false)} />
       <RewardModal result={reward} onClose={() => setReward(null)} />

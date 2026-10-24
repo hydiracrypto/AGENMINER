@@ -42,8 +42,10 @@ export default function FriendsTab() {
 
   return (
     <div className="space-y-4">
+      {/* Kartu komisi + Bagikan — grid desktop 2 kolom */}
+      <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
       {/* Kartu komisi */}
-      <div className="rounded-2xl border border-[#A855F7]/30 bg-gradient-to-br from-[#A855F7]/12 to-[#181A20] p-5">
+      <div className="am-card rounded-2xl border border-[#A855F7]/30 bg-gradient-to-br from-[#A855F7]/12 to-[#181A20] p-5">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-bold flex items-center gap-1.5">
@@ -67,7 +69,7 @@ export default function FriendsTab() {
       </div>
 
       {/* Bagikan */}
-      <div className="rounded-2xl border border-[#2B3139] bg-[#181A20] p-5 space-y-3">
+      <div className="am-card rounded-2xl border border-[#2B3139] bg-[#181A20] p-5 space-y-3">
         <h3 className="text-sm font-bold flex items-center gap-1.5">
           <Share2 className="h-4 w-4 text-[#F0B90B]" /> {t("shareTitle")}
         </h3>
@@ -98,13 +100,14 @@ export default function FriendsTab() {
           </Button>
         </div>
       </div>
+      </div>
 
       {/* Cara kerja referral */}
-      <div className="rounded-2xl border border-[#2B3139] bg-[#181A20] p-5">
+      <div className="am-card rounded-2xl border border-[#2B3139] bg-[#181A20] p-5">
         <h3 className="text-sm font-bold flex items-center gap-1.5 mb-3">
           <Gift className="h-4 w-4 text-[#20B26C]" /> {t("howReferral")}
         </h3>
-        <div className="space-y-3">
+        <div className="grid gap-3 sm:grid-cols-3">
           <RefStep n={1} title={t("ref1Title")} desc={t("ref1Desc")} />
           <RefStep
             n={2}
@@ -120,13 +123,13 @@ export default function FriendsTab() {
 
 function RefStep({ n, title, desc }: { n: number; title: string; desc: string }) {
   return (
-    <div className="flex gap-3">
+    <div className="flex gap-3 rounded-xl border border-[#2B3139] bg-[#0B0E11] p-4">
       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#20B26C]/15 text-[11px] font-bold text-[#20B26C]">
         {n}
       </span>
       <div>
         <p className="text-xs font-bold">{title}</p>
-        <p className="text-[11px] text-[#848E9C] leading-relaxed">{desc}</p>
+        <p className="mt-1 text-[11px] leading-relaxed text-[#848E9C]">{desc}</p>
       </div>
     </div>
   );

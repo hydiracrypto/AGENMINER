@@ -25,6 +25,9 @@ const ZH = {
   featMining: "AI 挖矿",
   featReferral: "推荐奖励",
   featLeaderboard: "排行榜",
+  featMiningDesc: "写下有创意的挖矿提示词，Agentic AI 为你评分，并从矿池中直接结晶 AGENMINER。",
+  featReferralDesc: "邀请好友立即获得 500 奖励，并终身享受好友挖矿奖励 5% 的佣金。",
+  featLeaderboardDesc: "与全球矿工同台竞技，冲击排行榜前列，实时见证矿池进度。",
   signInWallet: "使用 Binance Agentic Wallet 登录",
   loginFooter:
     "通过你的 Web3 钱包安全连接 BNB Smart Chain。使用 AI 提示词挖矿 — 每次挖矿冷却 {s} 秒。",
@@ -198,6 +201,9 @@ const EN: Record<keyof typeof ZH, string> = {
   featMining: "AI Mining",
   featReferral: "Referral",
   featLeaderboard: "Leaderboard",
+  featMiningDesc: "Write a creative mining prompt — agentic AI scores it and crystallizes AGENMINER from the pool.",
+  featReferralDesc: "Earn 500 instantly per friend invited plus a 5% lifetime commission on their mining rewards.",
+  featLeaderboardDesc: "Compete with miners worldwide, climb the Top 50 and watch the pool progress live.",
   signInWallet: "Sign in with Binance Agentic Wallet",
   loginFooter:
     "Secure connection via your Web3 wallet on BNB Smart Chain. Rewards are mined with AI prompts — {s}s cooldown per mining session.",

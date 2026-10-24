@@ -84,3 +84,25 @@ Work Log:
 
 Stage Summary:
 - 2 permintaan selesai & terverifikasi: (1) tab Mine kini menampilkan kartu 挖矿池统计 LIVE — Total Supply 100,000,000 AGENMINER, Network BNB Chain, Mining Pool 70,000,000, 已挖出/Mined & 剩余/Remaining yang ter-update otomatis setiap mining (login screen juga menampilkan mined), (2) fee penarikan kini 5% (95% net di-mint ke wallet, 5% fee → likuiditas PancakeSwap) — terverifikasi E2E: 50 → 47.5 + 2.5.
+
+---
+Task ID: 5
+Agent: Z.ai (main agent)
+Task: Buat situs responsif penuh (mobile + desktop) dan tingkatkan tampilan menjadi profesional kelas "site builder terbaik".
+
+Work Log:
+- globals.css: tambahan polish profesional — pola background grid halus (.am-grid-bg + mask radial), judul gradient emas-ungu (.am-title-gradient), kartu premium hover lift (.am-card), keyframes float & shimmer, scrollbar body bergaya Binance.
+- Komponen BARU page-background.tsx: latar dekoratif fixed (glow radial emas/ungu/hijau + grid + vignette) dipakai di login, booting, dan halaman game.
+- Komponen BARU sidebar-nav.tsx (lg+): sidebar desktop w-64 — logo + brand, 5 menu tab dengan indikator aktif emas menyala, kartu mini statistik token (Total Supply/Mining Pool/AGENMINER-BNB PancakeSwap V2), toggle bahasa pill. BottomNav kini lg:hidden.
+- page.tsx: layout baru flex — sidebar kiri + konten lg:pl-64; main lebar responsif max-w-md → md:max-w-2xl → lg:max-w-6xl px-8; transisi antar-tab AnimatePresence (fade+slide 0.18s); footer desktop baru (© • BEP-20 • Chain ID 56 • Powered by Agentic AI).
+- login-screen.tsx: layout split profesional — desktop 2 kolom (kiri: logo 128px + judul gradient + 3 fitur berdeskripsi [keys baru featMiningDesc/featReferralDesc/featLeaderboardDesc zh+en]; kanan: kartu statistik + CTA + negara); mobile tetap stacked (MiniStat grid lg:hidden).
+- game-header.tsx: container melebar lg:max-w-6xl, backdrop-blur-xl, kartu saldo am-card + glow.
+- Semua tab grid desktop: Mine (core kiri lg:h-72 | prompt+cara-kerja kanan), Wallet (withdraw+likuiditas 2 kolom; token info+riwayat tarik 2 kolom; riwayat tambang full), Boost (upgrade+check-in 2 kolom; tokenomics legend sm:grid-cols-4), Friends (komisi+share 2 kolom; 3 langkah referral jadi kartu grid sm:grid-cols-3), Rank (leaderboard kiri | negara kanan).
+- Kartu utama diberi .am-card: pool-stats, withdraw, likuiditas, token info, riwayat, upgrade, komisi, share, my-rank, negara.
+- BUGFIX: ReferenceError TOKEN di page.tsx footer (import TOKEN ditambahkan) — menyebabkan "Application error" setelah login di semua viewport; ditemukan via dev overlay (page.tsx 135:61). BUGFIX: nesting CryptoCountries masih di dalam kolom kiri rank-tab (pindah ke anak grid ke-2, terverifikasi children:2, secondX:853).
+- Dev server direstart via init-fullstack.sh (proses lama stale).
+- Verifikasi agent-browser: DESKTOP 1440px — login split render indah, sidebar nav klik ✓ (mine/wallet/boost/friends/rank semua grid 2 kolom), footer tampil, toggle EN → seluruh sidebar+konten Inggris ✓, mining prompt EN +80 skor 85 + narasi EN ✓, pool stats auto-refresh 406→486 ✓, bottomNav hidden ✓. MOBILE 390px — bottom nav tampil, sidebar hidden, semua konten 1 kolom ✓. Lint bersih, dev.log tanpa error.
+- Screenshot bukti di download/: v5-login-desktop.png, v5-mine-desktop.png, v5-wallet-desktop.png, v5-boost-desktop.png, v5-rank-desktop.png, v5-friends-desktop.png, v5-mine-mobile.png.
+
+Stage Summary:
+- Situs kini responsif penuh: MOBILE (bottom nav, 1 kolom, seperti sebelumnya) & DESKTOP (sidebar navigasi + konten lebar 6xl, grid 2 kolom di semua tab, footer profesional). Tampilan dinaikkan kelasnya: background glow+grid, judul gradient, kartu hover-lift, transisi tab halus, login split-screen dengan daftar fitur. Satu-satunya bug runtime (TOKEN import) ditemukan & diperbaiki; E2E mining/withdraw/navigasi/toggle bahasa terverifikasi di kedua viewport.

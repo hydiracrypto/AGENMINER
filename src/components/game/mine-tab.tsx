@@ -103,9 +103,10 @@ export default function MineTab() {
       {/* ── Statistik Pool: Total Supply / Network / Mining Pool / Mined / Remaining ── */}
       <PoolStatsCard refreshKey={statsKey} />
 
+      <div className="grid gap-5 lg:grid-cols-2 lg:items-start lg:gap-6">
       {/* ── Mining Core ── */}
-      <div className="relative flex flex-col items-center pt-2 pb-1">
-        <div className="relative h-64 w-64 flex items-center justify-center">
+      <div className="relative flex flex-col items-center pt-2 pb-1 lg:pt-8">
+        <div className="relative h-64 w-64 flex items-center justify-center lg:h-72 lg:w-72">
           {/* glow */}
           <div
             className={`absolute inset-6 rounded-full blur-2xl transition-opacity duration-500 ${
@@ -156,7 +157,7 @@ export default function MineTab() {
             whileTap={canMine ? { scale: 0.94 } : undefined}
             animate={mining ? { scale: [1, 1.06, 1] } : { scale: 1 }}
             transition={mining ? { duration: 0.6, repeat: Infinity } : { type: "spring", stiffness: 300 }}
-            className={`relative z-10 flex h-40 w-40 flex-col items-center justify-center rounded-full border-2 transition-colors ${
+            className={`relative z-10 flex h-40 w-40 flex-col items-center justify-center rounded-full border-2 transition-colors lg:h-44 lg:w-44 ${
               cooling !== null
                 ? "border-[#2B3139] bg-[#181A20]"
                 : "border-[#F0B90B] bg-gradient-to-b from-[#1E2329] to-[#0B0E11] hover:border-[#F8D33A] cursor-pointer"
@@ -198,6 +199,8 @@ export default function MineTab() {
         </div>
       </div>
 
+      {/* ── Kolom kanan: Prompt + Cara kerja ── */}
+      <div className="space-y-5">
       {/* ── Input Prompt ── */}
       <div className="rounded-2xl border border-[#2B3139] bg-[#181A20] p-4 space-y-3">
         <div className="flex items-center justify-between">
@@ -282,6 +285,8 @@ export default function MineTab() {
             <Step n={4} /> {t("how4", { sym: TOKEN.symbol })}
           </li>
         </ol>
+      </div>
+      </div>
       </div>
     </div>
   );

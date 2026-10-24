@@ -89,8 +89,10 @@ export default function BoostTab() {
         </motion.div>
       )}
 
+      {/* Upgrade + Check-in — grid desktop 2 kolom */}
+      <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
       {/* ── Upgrade Power ── */}
-      <div className="rounded-2xl border border-[#F0B90B]/30 bg-gradient-to-br from-[#F0B90B]/10 to-[#181A20] p-5">
+      <div className="am-card rounded-2xl border border-[#F0B90B]/30 bg-gradient-to-br from-[#F0B90B]/10 to-[#181A20] p-5">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-bold flex items-center gap-1.5">
@@ -126,7 +128,7 @@ export default function BoostTab() {
       </div>
 
       {/* ── Check-in Harian ── */}
-      <div className="rounded-2xl border border-[#2B3139] bg-[#181A20] p-5">
+      <div className="am-card rounded-2xl border border-[#2B3139] bg-[#181A20] p-5">
         <h3 className="text-sm font-bold flex items-center gap-1.5">
           <Gift className="h-4 w-4 text-[#20B26C]" /> {t("dailyCheckin")}
         </h3>
@@ -176,6 +178,7 @@ export default function BoostTab() {
           )}
         </Button>
       </div>
+      </div>
 
       {/* ── Tokenomics ── */}
       <div className="rounded-2xl border border-[#2B3139] bg-[#181A20] p-5">
@@ -186,7 +189,7 @@ export default function BoostTab() {
             <div key={tk.label} style={{ width: `${tk.pct}%`, backgroundColor: tk.color }} title={tk.label} />
           ))}
         </div>
-        <div className="mt-4 grid grid-cols-2 gap-2.5">
+        <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
           {tokenomics.map((tk) => (
             <div key={tk.label} className="flex items-center gap-2 rounded-xl bg-[#0B0E11] px-3 py-2.5">
               <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: tk.color }} />

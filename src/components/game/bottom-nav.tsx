@@ -18,7 +18,7 @@ export default function BottomNav() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-40 pb-[env(safe-area-inset-bottom)]">
+    <nav className="fixed bottom-0 left-1/2 z-40 w-full max-w-md -translate-x-1/2 pb-[env(safe-area-inset-bottom)] lg:hidden">
       <div className="mx-3 mb-3 rounded-2xl border border-[#2B3139] bg-[#181A20]/95 backdrop-blur shadow-[0_8px_30px_rgba(0,0,0,0.5)]">
         <ul className="flex items-stretch">
           {TABS.map((t) => {
