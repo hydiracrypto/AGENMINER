@@ -13,6 +13,8 @@
     "db:reset": "prisma migrate reset"
   },
   "dependencies": {
+    "@binance/w3w-ethereum-provider": "^1.1.13",
+    "@binance/w3w-utils": "^1.1.8",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -49,6 +51,7 @@
     "@reactuses/core": "^6.0.5",
     "@tanstack/react-query": "^5.82.0",
     "@tanstack/react-table": "^8.21.3",
+    "buffer": "^6.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
