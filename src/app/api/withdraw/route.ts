@@ -95,3 +95,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Server error", errorKey: "server_error" }, { status: 500 });
   }
 }
+
+/** GET bridge — proxy/jaringan yang memblokir POST tetap bisa tarik via ?address=&amount= */
+export async function GET(req: NextRequest) {
+  const body: Record<string, string> = {};
+  req.nextUrl.searchParams.forEach((v, k) => {
+    body[k] = v;
+  });
+  return POST(
+    new NextRequest(new URL(req.url), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+  );
+}

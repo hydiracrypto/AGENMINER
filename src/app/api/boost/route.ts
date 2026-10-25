@@ -79,3 +79,18 @@ export async function POST(req: NextRequest) {
   }
 }
 
+
+/** GET bridge — proxy/jaringan yang memblokir POST tetap bisa boost via ?address=&action= */
+export async function GET(req: NextRequest) {
+  const body: Record<string, string> = {};
+  req.nextUrl.searchParams.forEach((v, k) => {
+    body[k] = v;
+  });
+  return POST(
+    new NextRequest(new URL(req.url), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+  );
+}

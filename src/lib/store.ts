@@ -7,6 +7,7 @@
 import { create } from "zustand";
 import type { MineResult, PublicUser } from "./types";
 import { clearSession } from "./wallet";
+import { api } from "./api-client";
 
 export type GameTab = "mine" | "boost" | "friends" | "rank" | "wallet";
 
@@ -43,10 +44,10 @@ export const useGameStore = create<GameState>((set) => ({
   setRefreshing: (refreshing) => set({ refreshing }),
   logout: () => {
     clearSession();
-    // Sign out sesi Agentic Wallet di server (fire-and-forget).
+    // Sign out sesi Agentic Wallet di server (fire-and-forget, tangguh POST→GET).
     // Setelah ini `baw auth signout` dijalankan → sign-in berikutnya wajib QR baru.
     try {
-      fetch("/api/agentic/signout", { method: "POST" }).catch(() => undefined);
+      api.agenticSignout().catch(() => undefined);
     } catch {
       /* ignore */
     }

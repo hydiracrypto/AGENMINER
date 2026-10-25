@@ -34,7 +34,7 @@ import {
   saveSession,
   type WalletOption,
 } from "@/lib/wallet";
-import { api } from "@/lib/api-client";
+import { api, type AgenticStartData } from "@/lib/api-client";
 import { useGameStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import type { PublicUser } from "@/lib/types";
@@ -42,13 +42,7 @@ import type { PublicUser } from "@/lib/types";
 type View = "idle" | "starting" | "connecting";
 type Badge = "notConnected" | "connecting" | "connected";
 
-interface StartData {
-  qrCodeId: string;
-  urlForWeb: string;
-  pairingCode: string;
-  expireAt: number;
-  secondsLeft: number;
-}
+type StartData = AgenticStartData;
 
 const POLL_MS = 2500;
 
@@ -216,20 +210,8 @@ export default function WalletConnectModal({
     setView("starting");
     setBadge("connecting");
     try {
-      const res = await fetch("/api/agentic/start", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refCode: refCodeRef.current ?? null }),
-      });
-      const d = (await res.json()) as
-        | (StartData & { alreadyConnected?: boolean; user?: PublicUser; address?: string })
-        | { error: string };
-      if (!res.ok || "error" in d) {
-        setErr({ msg: tRef.current("sdkFailed") });
-        setView("idle");
-        setBadge("notConnected");
-        return;
-      }
+      // api.agenticStart sudah tangguh: POST → GET fallback → POST ulang
+      const d = await api.agenticStart(refCodeRef.current ?? null);
       if (d.alreadyConnected && d.user && d.address) {
         // Sesi Agentic Wallet di server masih hidup → langsung masuk tanpa QR
         finishLogin(d.user, d.address);

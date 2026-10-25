@@ -1,5 +1,6 @@
 // POST /api/auth/login — Masuk / daftar penambang via wallet address
 // Terbuka untuk semua wallet (tanpa gate NFT / whitelist).
+// GET bridge: proxy/jaringan yang memblokir POST tetap bisa masuk via ?address=&refCode=
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { isValidEvmAddress } from "@/lib/game-config";
@@ -29,4 +30,19 @@ export async function POST(req: NextRequest) {
     console.error("[auth/login]", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
+}
+
+/** GET bridge — body dibaca dari query params, diteruskan ke POST */
+export async function GET(req: NextRequest) {
+  const body: Record<string, string> = {};
+  req.nextUrl.searchParams.forEach((v, k) => {
+    body[k] = v;
+  });
+  return POST(
+    new NextRequest(new URL(req.url), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+  );
 }
