@@ -324,3 +324,26 @@ Work Log:
 
 Stage Summary:
 - Error merah "Couldn't reach the Binance network" bukan berasal dari wallet/CLI (semua sehat) melainkan permintaan POST yang gugur di gateway publik sebelum sampai server — kini semua API call tahan gangguan: auto-retry 3 tahap + fallback POST→GET + GET bridge di 6 route.
+
+---
+Task ID: 12
+Agent: Z.ai (main agent)
+Task: "Masih tidak muncul qr code nya perbaiki lagi ... Sign in to my Agentic Wallet. Seperti situs https://ptah.trade" — QR code tidak tampil saat sign-in Agentic Wallet.
+
+Work Log:
+- DIAGNOSIS: stack server 100% sehat (POST /api/agentic/start 200, QR uni-qr asli, poll jalan). Log menunjukkan polling klien user SUDAH berjalan (berarti data start diterima) tapi user refresh halaman setelah ±20 dtk → QR image sendiri tidak pernah ter-render di browser user. 3 kelemahan struktural ditemukan:
+  (1) QR dirender CLIENT-SIDE (QRCode.toDataURL di browser) — bila gagal di browser HP/proxy, kartu QR spinner selamanya;
+  (2) SETIAP start/retry/klik spawn `baw auth signin` BARU yang MENGHANCURKAN QR sebelumnya (retry POST→GET→POST klien = sampai 3 signin per klik; curl debug juga meng-clobber QR user);
+  (3) request menggantung di gateway tidak ada timeout.
+- FIX 1 — QR SERVER-SIDE: /api/agentic/start kini generate QR PNG (data URL, qrcode pkg) di server & mengirim `qrDataUrl` → client tinggal <img src> INSTAN tanpa kerja render di browser. Fallback render lokal hanya bila qrDataUrl tidak ada.
+- FIX 2 — SESI REUSE (pola ptah.trade): startAgenticSignIn kini MEMAKAI sesi pending yang masih hidup (verifyDone sinkron flag + expireAt check) — retry klien, klik ulang, request paralel, atau debug curl semuanya dapat QR YANG SAMA; QR user tidak pernah dibatalkan mendadak. Sesi lama mati → clearAgenticSession membunuh verify child lama (tidak ada proses zombie).
+- FIX 3 — pollAgenticSignIn: verify selesai tapi gagal → EXPIRED (client tunjukkan tombol refresh), tidak pernah WAITING selamanya. verifyDone flag sinkron + verifyChild (ReturnType<typeof spawn>) disimpan di sesi.
+- FIX 4 — api-client tryFetch: timeout manual 12 dtk (AbortController, kompatibel browser lama) → request menggantung jadi TransportError → rantai retry POST→GET→POST jalan.
+- DIAGNOSTIK: [agentic/start] log kini mencetak timestamp + UA + qrCodeId + pairing + reuse=yes/new — lalu mudah melacak trafik user vs debug.
+- Verifikasi: tsc + eslint bersih; curl start 2× → qrCodeId SAMA (reuse), ke-2 cuma 25ms; poll sesi aktif → WAITING + countdown; poll qrCodeId bogus → EXPIRED; qrDataUrl 4014 char data:image/png.
+- E2E browser (zh & en): klik "登录我的 Agentic Wallet"/"Sign in to my Agentic Wallet" → dialog → QR tampil (img data:image/png 200x200) + pairing code 1f0bb7 + countdown; cancel → sign-in lagi → QR SAMA reuse=yes (45ms, instan); footer teks baru utuh; badge Connecting/连接中.
+- Cleanup: baw auth signout + kill verify child → server bersih untuk user.
+- Screenshot: download/v12-qr-server-side-zh.png, v12-qr-server-side-en.png.
+
+Stage Summary:
+- QR kini digenerate SERVER-SIDE dan tampil INSTAN (tidak lagi tergantung render browser user) + sesi sign-in STABIL ala ptah.trade (retry/klik ulang tidak menghancurkan QR) + timeout & EXPIRED handling lengkap — alasan "QR tidak muncul" hilang di seluruh lapisan (browser, proxy, CLI, proses).

@@ -166,9 +166,15 @@ export default function WalletConnectModal({
     return () => window.clearInterval(id);
   }, [open, view, start, stopPoll]);
 
-  // ── Render QR (urlForWeb dari uni-qr Binance — dipakai verbatim) ──
+  // ── Render QR — PRIORITAS: qrDataUrl dari SERVER (instan, tahan browser/proxy
+  // bermasalah); fallback: render lokal via qrcode hanya bila server tidak kirim. ──
   useEffect(() => {
-    if (!open || view !== "connecting" || !start?.urlForWeb) return;
+    if (!open || view !== "connecting" || !start) return;
+    if (start.qrDataUrl) {
+      setQrData(start.qrDataUrl);
+      return;
+    }
+    if (!start.urlForWeb) return;
     let alive = true;
     QRCode.toDataURL(start.urlForWeb, {
       width: 460,
@@ -183,7 +189,7 @@ export default function WalletConnectModal({
     return () => {
       alive = false;
     };
-  }, [open, view, start?.urlForWeb]);
+  }, [open, view, start]);
 
   // Reset saat modal ditutup
   useEffect(() => {

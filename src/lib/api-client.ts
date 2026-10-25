@@ -26,9 +26,13 @@ const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 async function tryFetch<T>(url: string, init?: RequestInit): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(url, init);
+    // Timeout manual (AbortController — kompatibel browser lama): request yang
+    // menggantung di gateway/proxy diubah menjadi TransportError → di-retry.
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), 12_000);
+    res = await fetch(url, { ...init, signal: ac.signal }).finally(() => clearTimeout(timer));
   } catch {
-    // koneksi putus / DNS / offline
+    // koneksi putus / DNS / offline / timeout
     throw new TransportError("network");
   }
   const isJson = (res.headers.get("content-type") ?? "").includes("json");
@@ -95,6 +99,8 @@ export interface AgenticStartData {
   pairingCode: string;
   expireAt: number;
   secondsLeft: number;
+  /** QR PNG data-url dari server (tampil instan — tanpa render di browser) */
+  qrDataUrl?: string;
   alreadyConnected?: boolean;
   user?: PublicUser;
   address?: string;

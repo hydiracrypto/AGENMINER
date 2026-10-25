@@ -108,6 +108,15 @@ export interface AgenticSession {
   createdAt: number;
   /** Promise background `baw auth verify` — resolve saat user konfirmasi / timeout */
   verify: Promise<{ ok: boolean; message?: string }>;
+  /** Flag sinkron: true bila proses verify sudah selesai (sukses/gagal/timeout) */
+  verifyDone: boolean;
+  /** Proses verify child — dibunuh saat sesi digantikan/dibersihkan */
+  verifyChild: ReturnType<typeof spawn> | null;
+}
+
+/** Cek sinkron tanpa await: apakah verify sesi ini masih menunggu? */
+function isVerifyPending(s: AgenticSession): boolean {
+  return !s.verifyDone && s.expireAt - Date.now() > 0;
 }
 
 const g = globalThis as unknown as { __agenticSession?: AgenticSession | null };
@@ -118,7 +127,15 @@ export function getAgenticSession(): AgenticSession | null {
 }
 
 export function clearAgenticSession() {
+  const cur = g.__agenticSession;
   g.__agenticSession = null;
+  if (cur && !cur.verifyDone && cur.verifyChild) {
+    try {
+      cur.verifyChild.kill("SIGKILL");
+    } catch {
+      /* ignore */
+    }
+  }
 }
 
 // ---------- 1) auth signin ----------
@@ -130,7 +147,7 @@ export function clearAgenticSession() {
  * - simpan sesi global (sign-in baru menggantikan yang lama)
  */
 export type StartResult =
-  | { kind: "session"; session: AgenticSession }
+  | { kind: "session"; session: AgenticSession; reused: boolean }
   | { kind: "already"; user: PublicUser; address: string }
   | { kind: "error"; message: string };
 
@@ -143,6 +160,18 @@ export type StartResult =
  * - simpan sesi global (sign-in baru menggantikan yang lama)
  */
 export async function startAgenticSignIn(refCode: string | null): Promise<StartResult> {
+  // ── STABILITAS QR (pola ptah.trade) ──
+  // Bila sesi sign-in masih pending & belum kedaluwarsa → PAKAI SESI YANG SAMA.
+  // Retry klien (POST→GET→POST), klik ulang, atau request paralel TIDAK membuat
+  // QR baru — QR yang sedang dilihat user tidak pernah dibatalkan mendadak.
+  const cur = getAgenticSession();
+  if (cur && isVerifyPending(cur)) {
+    return { kind: "session", session: cur, reused: true };
+  }
+
+  // Sesi lama sudah mati/kedaluwarsa → bersihkan (bunuh verify child lama)
+  if (cur) clearAgenticSession();
+
   const signin = await runBaw(["auth", "signin", "--json"], 30_000);
   if (!signin.success || !signin.data) {
     return { kind: "error", message: signin.error?.message ?? "auth signin failed" };
@@ -165,13 +194,21 @@ export async function startAgenticSignIn(refCode: string | null): Promise<StartR
   }
 
   // Background verify — biarkan berjalan sampai user konfirmasi / timeout.
+  // Flag sinkron `verifyDone` + referensi child untuk manajemen proses.
+  let verifyDone = false;
+  let verifyChild: ReturnType<typeof spawn> | null = null;
   const verify = new Promise<{ ok: boolean; message?: string }>((resolve) => {
     try {
       const child = spawn(BAW, ["auth", "verify", "--qrCodeId", qrCodeId, "--json"], {
         env: { ...process.env, HOME: process.env.HOME ?? "/home/z" },
         stdio: ["ignore", "pipe", "pipe"],
       });
+      verifyChild = child;
       let out = "";
+      const finish = (r: { ok: boolean; message?: string }) => {
+        verifyDone = true;
+        resolve(r);
+      };
       const timer = setTimeout(
         () => {
           try {
@@ -179,7 +216,7 @@ export async function startAgenticSignIn(refCode: string | null): Promise<StartR
           } catch {
             /* ignore */
           }
-          resolve({ ok: false, message: "timeout" });
+          finish({ ok: false, message: "timeout" });
         },
         6 * 60_000 // lebih panjang dari TTL CLI (5 menit) supaya CLI yang memutus lebih dulu
       );
@@ -190,17 +227,18 @@ export async function startAgenticSignIn(refCode: string | null): Promise<StartR
         clearTimeout(timer);
         try {
           const json = JSON.parse(out.trim()) as BawJson;
-          if (json.success && json.data?.status === "SUCCESS") resolve({ ok: true });
-          else resolve({ ok: false, message: json.error?.name ?? "AUTH_FAILED" });
+          if (json.success && json.data?.status === "SUCCESS") finish({ ok: true });
+          else finish({ ok: false, message: json.error?.name ?? "AUTH_FAILED" });
         } catch {
-          resolve({ ok: false, message: "AUTH_FAILED" });
+          finish({ ok: false, message: "AUTH_FAILED" });
         }
       });
       child.on("error", () => {
         clearTimeout(timer);
-        resolve({ ok: false, message: "AUTH_FAILED" });
+        finish({ ok: false, message: "AUTH_FAILED" });
       });
     } catch {
+      verifyDone = true;
       resolve({ ok: false, message: "AUTH_FAILED" });
     }
   });
@@ -213,9 +251,13 @@ export async function startAgenticSignIn(refCode: string | null): Promise<StartR
     refCode: refCode?.trim().toUpperCase() || null,
     createdAt: Date.now(),
     verify,
+    get verifyDone() {
+      return verifyDone;
+    },
+    verifyChild,
   };
   g.__agenticSession = session; // gantikan sesi lama (QR lama menjadi tidak valid)
-  return { kind: "session", session };
+  return { kind: "session", session, reused: false };
 }
 
 // ---------- 2) wallet address ----------
@@ -268,6 +310,14 @@ export async function pollAgenticSignIn(qrCodeId: string): Promise<AgenticPollRe
 
   const secondsLeft = Math.max(0, Math.floor((session.expireAt - Date.now()) / 1000));
   if (secondsLeft <= 0) {
+    clearAgenticSession();
+    return { status: "EXPIRED" };
+  }
+
+  // Verify sudah selesai tapi belum di-clear (mis. gagal cepat) → EXPIRED agar
+  // client menampilkan tombol refresh, BUKAN menunggu selamanya.
+  // (Verify sukses selalu tertangkap oleh Promise.race di bawah → SUCCESS.)
+  if (session.verifyDone) {
     clearAgenticSession();
     return { status: "EXPIRED" };
   }
