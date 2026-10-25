@@ -4,6 +4,7 @@
 
 export interface PublicUser {
   walletAddress: string;
+  agentId: string | null; // Binance Agent ID = username & invite code
   username: string;
   avatar: string;
   balance: number;

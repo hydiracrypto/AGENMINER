@@ -25,6 +25,7 @@ export default function Page() {
   const tab = useGameStore((s) => s.tab);
   const connectOpen = useGameStore((s) => s.connectOpen);
   const setConnectOpen = useGameStore((s) => s.setConnectOpen);
+  const refCode = useGameStore((s) => s.refCode);
   const reward = useGameStore((s) => s.reward);
   const setReward = useGameStore((s) => s.setReward);
 
@@ -95,7 +96,7 @@ export default function Page() {
     return (
       <>
         <LoginScreen />
-        <WalletConnectModal open={connectOpen} onClose={() => setConnectOpen(false)} />
+        <WalletConnectModal open={connectOpen} onClose={() => setConnectOpen(false)} refCode={refCode} />
       </>
     );
   }
@@ -144,7 +145,7 @@ export default function Page() {
 
       {/* Navigasi bawah mobile (di bawah lg) */}
       <BottomNav />
-      <WalletConnectModal open={connectOpen} onClose={() => setConnectOpen(false)} />
+      <WalletConnectModal open={connectOpen} onClose={() => setConnectOpen(false)} refCode={refCode} />
       <RewardModal result={reward} onClose={() => setReward(null)} />
     </div>
   );

@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
       select: {
         walletAddress: true,
         username: true,
+        agentId: true,
         avatar: true,
         totalMined: true,
         miningPower: true,
@@ -40,7 +41,7 @@ export async function GET(req: NextRequest) {
     const rows: LeaderboardRow[] = top.map((u, i) => ({
       rank: i + 1,
       walletAddress: truncateAddress(u.walletAddress),
-      username: u.username ?? `Miner${u.refCode.slice(0, 4)}`,
+      username: u.username ?? u.agentId ?? `Miner${u.refCode.slice(0, 4)}`,
       avatar: u.avatar,
       totalMined: u.totalMined,
       miningPower: u.miningPower,

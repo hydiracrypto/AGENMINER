@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { GAME, isValidEvmAddress } from "@/lib/game-config";
-import { generateRefCode, toPublicUser } from "@/lib/user-utils";
+import { generateAgentId, toPublicUser } from "@/lib/user-utils";
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,18 +20,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ user: toPublicUser(user), isNew: false });
     }
 
-    // Buat user baru dengan refCode unik
+    // Buat user baru — Agent ID unik dipakai sebagai username & invite code (refCode)
     let created = null;
-    for (let attempt = 0; attempt < 5 && !created; attempt++) {
+    for (let attempt = 0; attempt < 8 && !created; attempt++) {
+      const agentId = generateAgentId();
       try {
         created = await db.user.create({
           data: {
             walletAddress: address,
-            refCode: generateRefCode(),
+            agentId,
+            refCode: agentId.toUpperCase(),
           },
         });
       } catch {
-        created = null; // refCode bentrok → coba lagi
+        created = null; // agentId/refCode bentrok → coba lagi
       }
     }
     if (!created) {

@@ -15,6 +15,7 @@ datasource db {
 model User {
   id            String       @id @default(cuid())
   walletAddress String       @unique // alamat wallet BNB Chain (lowercase)
+  agentId       String?      @unique // Binance Agent ID — dipakai sebagai username & invite code
   username      String? // nama penambang
   avatar        String       @default("🤖") // emoji avatar
   balance       Float        @default(0) // saldo AGENMINER tersedia

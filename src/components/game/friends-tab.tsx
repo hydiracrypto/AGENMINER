@@ -64,6 +64,7 @@ export default function FriendsTab() {
           <div className="rounded-xl bg-[#0B0E11] border border-[#2B3139] p-3.5">
             <p className="text-[10px] text-[#848E9C] uppercase tracking-wide">{t("inviteCode")}</p>
             <p className="text-lg font-extrabold text-[#F0B90B] tracking-widest mt-0.5">{user.refCode}</p>
+            <p className="mt-1 text-[10px] leading-snug text-[#848E9C]">{t("agentIdHint")}</p>
           </div>
         </div>
       </div>

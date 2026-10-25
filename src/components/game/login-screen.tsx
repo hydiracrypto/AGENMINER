@@ -15,6 +15,7 @@ import PageBackground from "@/components/game/page-background";
 
 export default function LoginScreen() {
   const setConnectOpen = useGameStore((s) => s.setConnectOpen);
+  const setStoreRefCode = useGameStore((s) => s.setRefCode);
   const { t, lang } = useT();
   const [stats, setStats] = useState<GlobalStats | null>(null);
   const [refCode, setRefCode] = useState<string | null>(null);
@@ -34,12 +35,15 @@ export default function LoginScreen() {
       try {
         const params = new URLSearchParams(window.location.search);
         const ref = params.get("ref");
-        if (ref && /^[A-Z0-9]{4,12}$/i.test(ref)) {
+        if (ref && /^[A-Z0-9]{4,16}$/i.test(ref)) {
           const upper = ref.toUpperCase();
           const url = new URL(window.location.href);
           url.searchParams.delete("ref");
           window.history.replaceState({}, "", url.toString());
-          if (!cancelled) setRefCode(upper);
+          if (!cancelled) {
+            setRefCode(upper);
+            setStoreRefCode(upper); // teruskan ke modal connect
+          }
         }
       } catch {
         /* ignore */
