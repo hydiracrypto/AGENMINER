@@ -220,3 +220,19 @@ Stage Summary:
 - Pairing login kini ASLI via SDK partner resmi Binance: QR = URI WalletConnect nyata dari relay Binance, dipindai Binance App → approve di Binance Web3 Wallet → alamat nyata → login game. Tombol "Open Binance sign-in" memakai deep link resmi (mobile → langsung buka Binance App).
 - Bug "Open Binance sign-in qr failed" tuntas diakar: URL palsu app.binance.com/agent-connect diganti mekanisme nyata; infinite loop React juga ditemukan & diperbaiki.
 - Metode pairing server (/pair) + wallet browser tetap tersedia sebagai fallback.
+
+---
+Task ID: 7
+Agent: Z.ai (main agent)
+Task: User bertanya "Kenapa tidak masuk ke wallet agentic ya malah masuk ke wallet yang blocxerz" (dengan 2 screenshot Binance App: Dompet Agentif everhand.ai & Dompet Saya dengan keyless wallet BLOCXERZ aktif).
+
+Work Log:
+- Riset docs resmi via llms.txt developers.binance.com: Binance Agentic Wallet adalah produk TERPISAH untuk AI Agent (autentikasi QR sign-in ke agent CLI/Skills, install via `npx skills add binance/binance-skills-hub/skills/binance-web3/binance-agentic-wallet`; kapabilitas: wallet status/address/balances, swap, limit order, prediction). TIDAK mendukung koneksi dApp web pihak ketiga via WalletConnect — jadi login web game harus via Binance Web3 Wallet (keyless).
+- Akar jawaban: SDK Web3 Connect resmi mengembalikan alamat wallet Web3 keyless yang sedang AKTIF di Binance App milik user (di screenshot: BLOCXERZ, ditandai centang). Agentic Wallet (everhand.ai) tidak muncul sebagai pilihan karena bukan bagian dari Web3 keyless wallet list.
+- Perbaikan UX di modal (tab Binance App): tambah 2 note ber-ikon Info — (1) walletActiveHint: alamat terhubung = wallet Web3 aktif di Binance App; cara ganti: Binance App → Dompet Saya → aktifkan wallet tujuan → scan lagi; (2) agenticNote: Agentic Wallet (Agent ID) produk terpisah untuk AI agent via Binance Skills, belum bisa connect ke dApp web.
+- i18n zh/en; E2E mobile 420px: QR asli relay Binance tampil + kedua note ter-render (hintShown=true, agenticNoteShown=true). Screenshot download/v6-wallet-hint-mobile-zh.png.
+- Commit + push GitHub.
+
+Stage Summary:
+- Pertanyaan user terjawab & terdokumentasi di UI: BLOCXERZ muncul karena itu wallet Web3 AKTIF user; Agentic Wallet memang belum bisa dipakai login dApp web (batasan resmi Binance, bukan bug game).
+- User tinggal switch wallet aktif di Binance App bila ingin alamat lain; saldo game terikat alamat wallet.
