@@ -150,3 +150,26 @@ Work Log:
 Stage Summary:
 - GitHub repo hydiracrypto/AGENMINER now contains full latest codebase: src (game components incl. PoolStatsCard, i18n zh/en, onchain-mint), contracts (AgenticMiner.sol + DEPLOY_GUIDE.md), prisma schema, db, public assets (logo), scripts, worklog
 - Remote main: d5bb34b, up to date with local
+
+---
+Task ID: qr-agent-login
+Agent: main (Z.ai)
+Task: Ganti cara Sign in jadi QR pairing ala ptah.trade + Agent ID sebagai username & invite code
+
+Work Log:
+- Install qrcode + @types/qrcode; generate QR pairing client-side (data URL)
+- Schema: User.agentId (unique) + prisma db push + backfill 3 user lama (scripts/backfill-agent-id.ts, refCode disamakan dgn agentId uppercase)
+- user-utils: generateAgentId() (kata+kata+angka, mis. TitanPulse43) + toPublicUser fallback username = agentId; leaderboard ikut fallback agentId
+- auth/login: user baru diberi agentId unik & refCode = agentId.toUpperCase() (invite code = Agent ID)
+- Rewrite wallet-connect-modal.tsx: header "Agent Wallet" + badge status (Connecting/Connected/Expired), kartu QR (border gradient emas), pairing code 6-hex (copy + refresh), hint scan, tombol "Open Binance sign-in", status "Waiting for confirmation · mm:ss" (TTL 300s), expired overlay refresh, tombol Confirm (simulasi konfirmasi di Binance App, animasi 1.5s), fallback wallet browser EIP-6963 terlipat
+- i18n zh/en: agentWalletTitle, connectStatus, connected, expiredBadge, qrSubtitle, pairingCode, scanHint, openBinance, waitingConfirm, codeExpired, refreshCode, cancelConnect, simulateConfirm, confirmingInApp, agentIdNote, useBrowserWallet, qrFooter, agentIdHint
+- friends-tab: hint "Agent ID = invite code"
+- Fix bug lama: refCode dari URL ?ref= tidak pernah sampai ke modal → kini disimpan di zustand store & diteruskan page.tsx ke kedua mount modal; regex ref diperluas 4-16 char
+- E2E agent-browser: mobile 420px (QR zh/en, confirm → login, header "TitanPulse43", Friends tab "TITANPULSE43" + link ?ref=TITANPULSE43), referral flow (?ref=TITANPULSE43 → user baru ZenRanger43, referrer balance/refEarnings +500 terverifikasi di DB), desktop 1440px (login, QR modal, game view)
+- Catatan: dev server harus di-restart setelah prisma db push (client lama tanpa agentId menyebabkan "Failed to create account"); server distart ulang via .zscripts/dev.sh
+- Lint bersih; push ke GitHub hydiracrypto/AGENMINER (d5bb34b..0b0cb37)
+
+Stage Summary:
+- Login kini: tombol → modal QR ala ptah.trade (pairing code + countdown) → Confirm → Agent ID otomatis jadi username header & invite code referral (bonus 500)
+- Fitur lama utuh: PoolStatsCard, mining, withdraw fee 5% → PancakeSwap, zh/en, logo, countries
+- Screenshot bukti: download/v5-*.png
