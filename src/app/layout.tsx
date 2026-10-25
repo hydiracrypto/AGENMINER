@@ -30,8 +30,15 @@ export const metadata: Metadata = {
     "no minimum withdrawal",
     "crypto countries",
   ],
+  // ⚠️ @binance/w3w SDK membaca nama dApp dari <meta name="name"> dulu (getClientMetadata),
+  // lalu og:site_name / og:title. Tanpa ini, wallet Binance menampilkan title panjang
+  // sebagai nama dApp saat approve (pengguna melihat nama yang salah).
+  other: {
+    name: "Agentic Miner",
+  },
   openGraph: {
     title: "AGENTIC MINER ⛏️ — AI Prompt Mining on BNB Chain",
+    siteName: "Agentic Miner",
     description:
       "Mine AGENMINER tokens with AI prompts on BNB Smart Chain — sign in with Binance Agentic Wallet. No minimum withdrawal, fees go to PancakeSwap liquidity!",
     type: "website",

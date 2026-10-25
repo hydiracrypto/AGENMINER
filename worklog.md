@@ -236,3 +236,27 @@ Work Log:
 Stage Summary:
 - Pertanyaan user terjawab & terdokumentasi di UI: BLOCXERZ muncul karena itu wallet Web3 AKTIF user; Agentic Wallet memang belum bisa dipakai login dApp web (batasan resmi Binance, bukan bug game).
 - User tinggal switch wallet aktif di Binance App bila ingin alamat lain; saldo game terikat alamat wallet.
+
+---
+Task ID: 8
+Agent: Z.ai (main agent)
+Task: Perbaikan laporan user: (1) nama dApp "Blocxerz" di wallet saat scan/approve, (2) logout wajib sign ulang, (3) tampilan miring mobile/desktop, (4) klik profil IronForge69 memunculkan modal sign, (5) sign up wajib holder NFT Agentic ID mainnet (tolak jika tidak punya), (6) tanya kenapa ptah.trade bisa sign ke Binance wallet agentic (uni-qr).
+
+Work Log:
+- Riset akar masalah "Blocxerz": decompile @binance/w3w-utils/src/metadata/browser.ts → getClientMetadata() membaca <meta name="name">/og:site_name/og:title/twitter:title (fallback document.title) + icons dari <link rel="icon">. Layout kita tidak punya og:site_name/name → wallet menampilkan nama salah. "Blocxerz" juga adalah nama wallet keyless AKTIF user di Binance App (screenshot Dompet Saya).
+- Fix metadata: layout.tsx metadata.other.name="Agentic Miner" + openGraph.siteName="Agentic Miner"; modal: patchDappMeta() menimpa signClient.coreConnection.clientMeta = {name:"Agentic Miner", icons:[origin/logo.png]} sebelum createSession (belt & suspenders).
+- Riset NFT Agentic ID: kontrak asli = SPACE ID Agent ID (AI) BEP-721 0x60B9262456dE011F7d15a54CdD8c48bAaa8B022F (BNB mainnet, soulbound .ai name per Agentic Wallet; dipakai project mintedbyagents.xyz & UNITS sebagai syarat mint via balanceOf). Verifikasi RPC: balanceOf(0x9e4002...c688)=1 (wallet Agentic user "everhand.ai" — alamat tsb ternyata WALLET user, bukan kontrak NFT, dikonfirmasi screenshot ptah.trade + eth_getCode=0x).
+- Gate NFT: game-config AGENTIC_ID (contract/rpcs fallback/whitelist 0x9e40...), lib/agent-id.ts checkAgentId (eth_call balanceOf, cache 2 menit, fallback 4 RPC, trusted=false bila semua RPC gagal), API GET /api/agent-id; auth/login & pair/approve menolak 403 errorKey=agent_id_required bila bukan holder (user lama & baru sama).
+- Client gate: probeAgentId() pre-check di handleBinanceAccounts (SDK), handleBrowserWallet (EIP-6963) — tanpa NFT: failed + pesan agentIdRequired, TIDAK login. Banner syarat NFT di atas konten modal (link bscscan). Halaman /pair/[code] dirombak: langkah 1 connect wallet nyata (EIP-6963/injected, hint dApp browser Binance bila kosong), badge verifikasi Agentic ID (✓/No Agentic ID/verify at approve), approve kirim {code,address} — demo random address DIHAPUS.
+- Logout wajib sign ulang: wallet.ts registerW3W()/disconnectW3W() (kill session WC); store.logout() = clearSession + disconnectW3W + reset state; wallet-tab handleDisconnect pakai logout(). startBinance memanggil registerW3W(p).
+- Klik profil: game-header tombol profil kini setTab("wallet") — bukan setConnectOpen(true); tidak ada lagi modal sign saat klik IronForge69.
+- i18n zh/en baru: agentIdGate, agentIdRequired, agentIdChecking; agenticNote diperbarui (jelaskan ptah.trade = partner resmi, kita pakai SDK Web3 resmi + gate NFT).
+- tsc & eslint bersih (tsconfig exclude research/skills/examples/contracts; wallet.ts WindowWithProviders pakai intersection).
+- E2E: /api/agent-id holder→hasNft:true, acak→false; auth/login acak→403 agent_id_required, holder→200 (user TurboWolf80); pair approve acak→403; meta name/og:site_name="Agentic Miner" terverifikasi di DOM; modal mobile (banner gate + QR asli + QR SDK), mine mobile/desktop, login desktop, /pair mobile — semua lurus tanpa elemen miring (eval transform scan = []). Logout → session null + kembali ke login.
+- Screenshot: download/v7-*.png. Server dev direstart setelah prisma tidak berubah.
+
+Stage Summary:
+- Layar approve Binance Wallet kini menampilkan dApp "Agentic Miner" + logo (bukan nama salah/BLOCXERZ; nama wallet aktif user tetap tampil sebagai wallet tujuan — perilaku Binance).
+- Login: logout → SDK session dibunuh → login berikutnya WAJIB scan/approve ulang.
+- Semua jalur masuk (SDK QR, wallet browser, pairing link) di-gate NFT SPACE ID Agent ID 0x60B9...022F; tanpa NFT ditolak di client & server.
+- ptah.trade memakai akses partner resmi Binance Agent Wallet (uni-qr) yang belum terbuka publik — dijelaskan di UI; kita tetap pakai QR WalletConnect resmi via relay Binance.

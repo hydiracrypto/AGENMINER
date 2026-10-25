@@ -6,6 +6,7 @@
 
 import { create } from "zustand";
 import type { MineResult, PublicUser } from "./types";
+import { clearSession, disconnectW3W } from "./wallet";
 
 export type GameTab = "mine" | "boost" | "friends" | "rank" | "wallet";
 
@@ -22,6 +23,8 @@ interface GameState {
   setRefCode: (c: string | null) => void;
   setReward: (r: MineResult | null) => void;
   setRefreshing: (b: boolean) => void;
+  /** Logout penuh: hapus sesi + putus koneksi SDK Binance → login berikutnya wajib sign ulang */
+  logout: () => void;
 }
 
 export const useGameStore = create<GameState>((set) => ({
@@ -37,4 +40,9 @@ export const useGameStore = create<GameState>((set) => ({
   setRefCode: (refCode) => set({ refCode }),
   setReward: (reward) => set({ reward }),
   setRefreshing: (refreshing) => set({ refreshing }),
+  logout: () => {
+    clearSession();
+    disconnectW3W(); // kill session WalletConnect → wajib scan/approve ulang
+    set({ user: null, tab: "mine", reward: null });
+  },
 }));

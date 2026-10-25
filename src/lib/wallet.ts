@@ -26,10 +26,12 @@ export interface EIP6963ProviderDetail {
   provider: EIP1193Provider;
 }
 
-interface WindowWithProviders extends Window {
-  binancew3w?: EIP1193Provider;
-  ethereum?: EIP1193Provider & { isMetaMask?: boolean; isBinance?: boolean };
-}
+// Pakai intersection (bukan extends) karena deklarasi global pihak ketiga
+// bisa menjadikan Window.ethereum/binancew3w required dan menimbulkan konflik.
+type WindowWithProviders = Window & {
+  binancew3w?: EIP1193Provider | undefined;
+  ethereum?: (EIP1193Provider & { isMetaMask?: boolean; isBinance?: boolean }) | undefined;
+};
 
 // ---------- EIP-6963 discovery ----------
 
@@ -193,5 +195,45 @@ export function clearSession() {
     localStorage.removeItem(SESSION_KEY);
   } catch {
     /* ignore */
+  }
+}
+
+// ---------- SDK Binance W3W (singleton registry) ----------
+// Simpan instance provider SDK @binance/w3w-ethereum-provider agar logout
+// bisa memutus koneksi WalletConnect → sesi berikutnya WAJIB scan/approve ulang.
+
+let w3wInstance: { disconnect?: () => void } | null = null;
+
+/** Catat instance provider SDK yang dipakai modal (dipanggil saat startBinance) */
+export function registerW3W(p: { disconnect?: () => void } | null) {
+  w3wInstance = p;
+}
+
+/** Putus koneksi SDK Binance (kill session WalletConnect + bersihkan storage SDK) */
+export function disconnectW3W() {
+  try {
+    w3wInstance?.disconnect?.();
+  } catch {
+    /* ignore */
+  }
+  w3wInstance = null;
+}
+
+// ---------- Agentic ID NFT pre-check (CLIENT) ----------
+// Server tetap memverifikasi ulang di /api/auth/login (sumber kebenaran).
+export interface AgentIdProbe {
+  hasNft: boolean;
+  balance: number;
+  trusted: boolean;
+}
+
+export async function probeAgentId(address: string): Promise<AgentIdProbe> {
+  try {
+    const res = await fetch(`/api/agent-id?address=${address.toLowerCase()}`);
+    if (!res.ok) return { hasNft: false, balance: 0, trusted: false };
+    const d = (await res.json()) as { hasNft?: boolean; balance?: number; trusted?: boolean };
+    return { hasNft: Boolean(d.hasNft), balance: Number(d.balance ?? 0), trusted: Boolean(d.trusted) };
+  } catch {
+    return { hasNft: false, balance: 0, trusted: false };
   }
 }

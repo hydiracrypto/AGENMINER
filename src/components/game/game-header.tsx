@@ -8,7 +8,7 @@ import LanguageToggle from "@/components/game/language-toggle";
 
 export default function GameHeader() {
   const user = useGameStore((s) => s.user);
-  const setConnectOpen = useGameStore((s) => s.setConnectOpen);
+  const setTab = useGameStore((s) => s.setTab);
   const { t, lang } = useT();
   if (!user) return null;
 
@@ -16,11 +16,11 @@ export default function GameHeader() {
     <header className="sticky top-0 z-40 border-b border-[#2B3139]/80 bg-[#0B0E11]/90 backdrop-blur-xl">
       <div className="mx-auto max-w-md px-4 py-3 md:max-w-2xl md:px-6 lg:max-w-6xl lg:px-8">
         <div className="flex items-center gap-2">
-          {/* Profil */}
+          {/* Profil — klik → buka tab Wallet (TIDAK memicu sign/connect lagi) */}
           <button
-            onClick={() => setConnectOpen(true)}
+            onClick={() => setTab("wallet")}
             className="flex items-center gap-2.5 min-w-0 hover:opacity-80 transition-opacity"
-            aria-label="Ganti akun wallet"
+            aria-label="Buka dompet saya"
           >
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#2B3139] to-[#181A20] border border-[#2B3139] text-xl">
               {user.avatar}

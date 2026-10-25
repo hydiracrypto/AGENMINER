@@ -34,6 +34,8 @@ import {
   connectProvider,
   getWalletOptions,
   saveSession,
+  registerW3W,
+  probeAgentId,
   type WalletOption,
   type EIP1193Provider,
 } from "@/lib/wallet";
@@ -47,6 +49,33 @@ import type { PublicUser } from "@/lib/types";
 const PAIR_TTL = 300; // detik — sama seperti ptah.trade
 const POLL_MS = 2500;
 const SDK_URI_TIMEOUT = 20_000; // batas tunggu URI dari relay Binance
+
+// Metadata dApp resmi yang tampil di layar approve Binance Wallet.
+// SDK membaca <meta name="name">/og:site_name (dipasang di layout.tsx), tapi
+// kita patch juga clientMeta pada coreConnection agar 100% pasti "Agentic Miner"
+// + logo (bukan nama default/wallet aktif user seperti "BLOCXERZ").
+function dappMeta() {
+  if (typeof window === "undefined") return null;
+  return {
+    name: "Agentic Miner",
+    description: "Mine AGENMINER with AI prompts on BNB Chain",
+    url: window.location.origin,
+    icons: [`${window.location.origin}/logo.png`],
+  };
+}
+
+/** Pastikan clientMeta SDK = Agentic Miner (patch coreConnection.signClient) */
+function patchDappMeta(p: unknown) {
+  try {
+    const meta = dappMeta();
+    if (!meta) return;
+    const provider = p as { signClient?: { coreConnection?: { clientMeta?: unknown } } };
+    const core = provider?.signClient?.coreConnection;
+    if (core) core.clientMeta = meta;
+  } catch {
+    /* best-effort */
+  }
+}
 
 interface Props {
   open: boolean;
@@ -149,8 +178,21 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
       if (!mounted.current || binanceCancelled.current) return;
       setSdkStatus("approving");
       try {
+        // ── GATE AGENTIC ID: wajib holder NFT SPACE ID Agent ID ──
+        const probe = await probeAgentId(addr.toLowerCase());
+        if (!mounted.current || binanceCancelled.current) return;
+        if (!probe.hasNft) {
+          setSdkStatus("failed");
+          setSdkErr(t("agentIdRequired"));
+          return;
+        }
         const res = await api.login(addr.toLowerCase(), refCode ?? undefined);
         if (!mounted.current) return;
+        if (!res.user) {
+          setSdkStatus("failed");
+          setSdkErr(t("agentIdRequired"));
+          return;
+        }
         saveSession({
           address: res.user.walletAddress,
           walletName: "Binance Web3 Wallet",
@@ -158,11 +200,11 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
         });
         setUser(res.user);
         onClose();
-      } catch {
-        if (mounted.current) {
-          setSdkStatus("failed");
-          setSdkErr(t("errLogin"));
-        }
+      } catch (err) {
+        if (!mounted.current) return;
+        const key = (err as { errorKey?: string })?.errorKey;
+        setSdkStatus("failed");
+        setSdkErr(key === "agent_id_required" ? t("agentIdRequired") : t("errLogin"));
       }
     },
     [refCode, setUser, onClose, t]
@@ -204,6 +246,8 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
       if (!providerRef.current) {
         const p: W3WProvider = getProvider({ chainId: 56, showQrCodeModal: false });
         providerRef.current = p;
+        registerW3W(p); // agar logout bisa memutus koneksi SDK
+        patchDappMeta(p); // nama dApp "Agentic Miner" di layar approve wallet
 
         p.on("uri_ready", (uri: string) => {
           if (binanceCancelled.current || !mounted.current) return;
@@ -242,6 +286,10 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
           setSdkErr(t("sdkFailed"));
         }
       }, SDK_URI_TIMEOUT);
+
+      // Pastikan metadata dApp selalu ter-patch sebelum sesi dibuat (createSession
+      // membaca clientMeta saat enable()).
+      patchDappMeta(p);
 
       // enable() menunggu persetujuan di Binance App (scan QR / deep link).
       // Jika sesi pending dari bukaan modal sebelumnya masih berjalan,
@@ -455,18 +503,28 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
       try {
         const address = await connectProvider(opt.provider);
         if (!isValidEvmAddress(address)) throw new Error("invalid address");
+        // ── GATE AGENTIC ID: wajib holder NFT SPACE ID Agent ID ──
+        const probe = await probeAgentId(address.toLowerCase());
+        if (mounted.current && !probe.hasNft) {
+          throw Object.assign(new Error(t("agentIdRequired")), { gated: true });
+        }
         const res = await api.login(address.toLowerCase(), refCode ?? undefined);
         saveSession({ address: res.user.walletAddress, walletName: opt.name, loginAt: Date.now() });
         setUser(res.user);
         onClose();
       } catch (err) {
-        const msg =
-          err instanceof Error
-            ? err.message.includes("user rejected") || err.message.includes("denied")
-              ? t("errUserRejected")
-              : err.message
-            : t("errConnect");
-        setError(msg);
+        const e = err as Error & { gated?: boolean };
+        if (mounted.current && e?.gated) {
+          setError(e.message);
+        } else {
+          const msg =
+            err instanceof Error
+              ? err.message.includes("user rejected") || err.message.includes("denied")
+                ? t("errUserRejected")
+                : err.message
+              : t("errConnect");
+          setError(msg);
+        }
       } finally {
         if (mounted.current) setConnecting(null);
       }
@@ -564,6 +622,21 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
         </div>
 
         <div className="max-h-[68vh] overflow-y-auto px-5 py-5">
+          {/* Banner syarat masuk: wajib holder NFT Agentic ID */}
+          <div className="mb-4 flex items-start gap-2 rounded-xl border border-[#F0B90B]/35 bg-gradient-to-r from-[#F0B90B]/10 to-transparent p-3">
+            <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#F0B90B]" />
+            <p className="text-[11px] leading-relaxed text-[#EAECEF]">
+              {t("agentIdGate")}
+              <a
+                href="https://bscscan.com/token/0x60b9262456de011f7d15a54cdd8c48baaa8b022f"
+                target="_blank"
+                rel="noreferrer"
+                className="ml-1 font-mono text-[10px] text-[#F0B90B] underline underline-offset-2"
+              >
+                0x60B9...022F
+              </a>
+            </p>
+          </div>
           {method === "binance" ? (
             /* ════════ METODE 1: SDK RESMI BINANCE ════════ */
             <>
@@ -602,6 +675,13 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
                   <Smartphone className="h-4 w-4" />
                   {t("openBinance")}
                 </button>
+
+                {/* Status verifikasi Agentic ID saat menyetujui */}
+                {sdkStatus === "approving" && (
+                  <p className="mt-3 flex items-center gap-1.5 text-[11px] font-semibold text-[#20B26C]">
+                    <BadgeCheck className="h-3.5 w-3.5" /> {t("agentIdChecking")}
+                  </p>
+                )}
 
                 <p className="mt-3 max-w-xs text-center text-[11px] leading-relaxed text-[#848E9C]">
                   {t("agentIdNote")}

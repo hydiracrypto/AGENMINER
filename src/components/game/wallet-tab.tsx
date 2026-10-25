@@ -23,12 +23,12 @@ import { TOKEN, WITHDRAW, PANCAKESWAP, fmtNum, splitWithdrawal, truncateAddress 
 import { api } from "@/lib/api-client";
 import { useGameStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
-import { clearSession } from "@/lib/wallet";
 import type { GlobalStats, RecentMine, WithdrawalItem } from "@/lib/types";
 
 export default function WalletTab() {
   const user = useGameStore((s) => s.user);
   const setUser = useGameStore((s) => s.setUser);
+  const logout = useGameStore((s) => s.logout);
   const { t, lang } = useT();
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
@@ -93,9 +93,9 @@ export default function WalletTab() {
   }, [user, busy, amount, setUser, loadHistory, t, lang]);
 
   const handleDisconnect = useCallback(() => {
-    clearSession();
-    setUser(null);
-  }, [setUser]);
+    // Logout penuh: hapus sesi + putus SDK Binance → wajib sign ulang saat masuk lagi
+    logout();
+  }, [logout]);
 
   if (!user) return null;
 

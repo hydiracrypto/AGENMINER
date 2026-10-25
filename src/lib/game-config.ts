@@ -39,6 +39,27 @@ export const PANCAKESWAP = {
   pair: "",
 } as const;
 
+// ============================================
+// GATE AGENTIC ID — hanya holder NFT "Agent ID" (SPACE ID) boleh masuk
+// Kontrak resmi: SPACE ID Agent ID (AI) BEP-721 soulbound di BNB Chain mainnet.
+// Tiap Agentic Wallet Binance yang mengklaim nama .ai memegang tepat 1 NFT ini
+// (contoh: everhand.ai → 0x9e400222944d864e91bfe54a60becb60c6f5c688, balanceOf = 1).
+// ============================================
+export const AGENTIC_ID = {
+  name: "SPACE ID Agent ID",
+  contract: "0x60b9262456de011f7d15a54cdd8c48baaa8b022f",
+  explorer: "https://bscscan.com/token/0x60b9262456de011f7d15a54cdd8c48baaa8b022f",
+  // RPC publik BSC — dicoba berurutan sampai berhasil
+  rpcs: [
+    "https://bsc-dataseed.binance.org",
+    "https://bsc-dataseed1.defibit.io",
+    "https://bsc.publicnode.com",
+    "https://binance.llamarpc.com",
+  ],
+  // Whitelist wallet (mis. Agentic Wallet owner) — selalu boleh masuk
+  whitelist: ["0x9e400222944d864e91bfe54a60becb60c6f5c688"],
+} as const;
+
 /** Pecahkan jumlah penarikan → net ke wallet + fee ke likuiditas PancakeSwap */
 export function splitWithdrawal(amount: number): { net: number; fee: number } {
   const fee = Math.round(amount * WITHDRAW.feePct) / 100; // bulatkan ke 2 desimal

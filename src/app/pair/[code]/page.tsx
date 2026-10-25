@@ -3,8 +3,9 @@
 // ============================================
 // AGENTIC MINER — Halaman Pairing /pair/[code]
 // Dibuka saat QR di modal Agent Wallet discan (kamera HP / browser lain).
-// Menyetujui koneksi → akun miner dibuat → modal di perangkat pertama
-// otomatis login via polling /api/pair/status.
+// 1) Hubungkan wallet di perangkat ini (dApp browser Binance / wallet browser)
+// 2) Verifikasi NFT Agentic ID (SPACE ID Agent ID) — server-side
+// 3) Setujui koneksi → modal di perangkat pertama auto-login
 // ============================================
 
 import { useEffect, useState } from "react";
@@ -15,17 +16,21 @@ import {
   Loader2,
   ShieldCheck,
   ShieldAlert,
+  ShieldX,
   Timer,
   CheckCircle2,
   Pickaxe,
   Copy,
   Check,
+  Wallet,
+  BadgeCheck,
 } from "lucide-react";
-import { api } from "@/lib/api-client";
+import { connectProvider, getWalletOptions, probeAgentId, type WalletOption } from "@/lib/wallet";
 import PageBackground from "@/components/game/page-background";
 import type { PublicUser } from "@/lib/types";
 
 type PairState = "loading" | "ready" | "approving" | "approved" | "expired" | "notfound" | "error";
+type NftState = "idle" | "checking" | "ok" | "denied" | "unverified";
 
 export default function PairPage() {
   const params = useParams<{ code: string }>();
@@ -36,6 +41,13 @@ export default function PairPage() {
   const [user, setUser] = useState<PublicUser | null>(null);
   const [errorMsg, setErrorMsg] = useState("");
   const [copied, setCopied] = useState(false);
+
+  // wallet di perangkat kedua
+  const [options, setOptions] = useState<WalletOption[]>([]);
+  const [walletAddr, setWalletAddr] = useState("");
+  const [walletName, setWalletName] = useState("");
+  const [connecting, setConnecting] = useState(false);
+  const [nft, setNft] = useState<NftState>("idle");
 
   // Validasi awal: cek sesi lewat endpoint status
   const codeValid = /^[0-9a-f]{6}$/.test(code);
@@ -57,10 +69,35 @@ export default function PairPage() {
       }
     };
     check();
+    // deteksi wallet browser (diam-diam)
+    getWalletOptions()
+      .then((opts) => {
+        if (alive) setOptions(opts);
+      })
+      .catch(() => {});
     return () => {
       alive = false;
     };
   }, [code, codeValid]);
+
+  const connectWallet = async (opt: WalletOption) => {
+    if (!opt.provider) return;
+    setConnecting(true);
+    setErrorMsg("");
+    try {
+      const addr = await connectProvider(opt.provider);
+      setWalletAddr(addr.toLowerCase());
+      setWalletName(opt.name);
+      setNft("checking");
+      const probe = await probeAgentId(addr.toLowerCase());
+      setNft(probe.trusted ? (probe.hasNft ? "ok" : "denied") : "unverified");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Gagal menghubungkan wallet";
+      setErrorMsg(/reject|denied/i.test(msg) ? "Koneksi dibatalkan di wallet / Rejected in wallet" : msg);
+    } finally {
+      setConnecting(false);
+    }
+  };
 
   const approve = async () => {
     setState("approving");
@@ -69,7 +106,7 @@ export default function PairPage() {
       const res = await fetch("/api/pair/approve", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ code, address: walletAddr }),
       });
       const d = await res.json();
       if (!res.ok || !d?.ok) {
@@ -97,6 +134,8 @@ export default function PairPage() {
       /* ignore */
     }
   };
+
+  const canApprove = (nft === "ok" || nft === "unverified") && Boolean(walletAddr) && state === "ready";
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#0B0E11] text-[#EAECEF]">
@@ -136,10 +175,11 @@ export default function PairPage() {
               <p className="text-center text-sm leading-relaxed text-[#848E9C]">
                 Perangkat lain ingin masuk ke <span className="font-bold text-[#EAECEF]">AGENTIC MINER</span>.
                 <br />
-                Pastikan pairing code sama, lalu setujui koneksi.
+                Hubungkan wallet pemegang <span className="font-bold text-[#F0B90B]">Agentic ID</span>, pastikan pairing
+                code sama.
                 <br />
                 <span className="text-xs">
-                  Another device wants to sign in. Make sure the pairing code matches.
+                  Connect a wallet holding the Agentic ID NFT, then approve.
                 </span>
               </p>
 
@@ -151,10 +191,86 @@ export default function PairPage() {
                 {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4 opacity-60" />}
               </button>
 
+              {/* Langkah 1 — connect wallet */}
+              <div className="w-full space-y-2">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-[#848E9C]">
+                  1 · Hubungkan wallet / Connect wallet
+                </p>
+
+                {walletAddr ? (
+                  <div className="flex items-center justify-between rounded-xl border border-[#2B3139] bg-[#0B0E11] p-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-mono text-xs text-[#EAECEF]">{walletAddr}</p>
+                      <p className="text-[10px] text-[#848E9C]">{walletName}</p>
+                    </div>
+                    {nft === "checking" && (
+                      <span className="flex items-center gap-1.5 text-[11px] text-[#848E9C]">
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Verifying…
+                      </span>
+                    )}
+                    {nft === "ok" && (
+                      <span className="flex items-center gap-1.5 text-[11px] font-bold text-[#20B26C]">
+                        <BadgeCheck className="h-4 w-4" /> Agentic ID ✓
+                      </span>
+                    )}
+                    {nft === "denied" && (
+                      <span className="flex items-center gap-1.5 text-[11px] font-bold text-[#F6465D]">
+                        <ShieldX className="h-4 w-4" /> No Agentic ID
+                      </span>
+                    )}
+                    {nft === "unverified" && (
+                      <span className="flex items-center gap-1.5 text-[11px] font-bold text-[#F0B90B]">
+                        <ShieldAlert className="h-4 w-4" /> Verify at approve
+                      </span>
+                    )}
+                  </div>
+                ) : options.length > 0 ? (
+                  options.map((opt) => (
+                    <button
+                      key={opt.id}
+                      onClick={() => connectWallet(opt)}
+                      disabled={connecting}
+                      className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors disabled:opacity-60 ${
+                        opt.isBinance
+                          ? "border-[#F0B90B]/50 bg-[#F0B90B]/10 hover:bg-[#F0B90B]/15"
+                          : "border-[#2B3139] bg-[#0B0E11] hover:bg-[#1E2329]"
+                      }`}
+                    >
+                      {opt.icon ? (
+                        <img src={opt.icon} alt={opt.name} className="h-8 w-8 rounded-lg" />
+                      ) : (
+                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1E2329] text-[#848E9C]">
+                          <Wallet className="h-4 w-4" />
+                        </span>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold">{opt.name}</p>
+                        <p className="truncate text-[11px] text-[#848E9C]">
+                          {opt.isBinance ? "Agentic Wallet • BNB Chain" : "Detected wallet"}
+                        </p>
+                      </div>
+                      {connecting ? (
+                        <Loader2 className="h-4 w-4 animate-spin text-[#F0B90B]" />
+                      ) : (
+                        <ShieldCheck className="h-4 w-4 text-[#20B26C]" />
+                      )}
+                    </button>
+                  ))
+                ) : (
+                  <p className="rounded-xl border border-dashed border-[#2B3139] p-3 text-center text-[11px] leading-relaxed text-[#848E9C]">
+                    Tidak ada wallet terdeteksi. Buka halaman ini lewat browser dApp di Binance App
+                    (Agent Wallet → Discover), lalu hubungkan wallet.
+                    <br />
+                    No wallet detected — open this page inside the Binance App dApp browser.
+                  </p>
+                )}
+              </div>
+
+              {/* Langkah 2 — setujui */}
               <Button
                 onClick={approve}
-                disabled={state === "approving"}
-                className="h-12 w-full rounded-2xl bg-gradient-to-r from-[#F8D33A] to-[#F0B90B] py-3.5 text-base font-extrabold text-[#0B0E11] shadow-[0_8px_30px_rgba(240,185,11,0.3)] hover:opacity-90"
+                disabled={!canApprove}
+                className="h-12 w-full rounded-2xl bg-gradient-to-r from-[#F8D33A] to-[#F0B90B] py-3.5 text-base font-extrabold text-[#0B0E11] shadow-[0_8px_30px_rgba(240,185,11,0.3)] hover:opacity-90 disabled:opacity-40"
               >
                 {state === "approving" ? (
                   <>
@@ -168,6 +284,12 @@ export default function PairPage() {
                   </>
                 )}
               </Button>
+              {nft === "denied" && (
+                <p className="text-center text-[11px] leading-relaxed text-[#F6465D]">
+                  Wallet ini tidak memegang NFT Agentic ID — akses ditolak. Klaim .ai Agent ID di Agentic Wallet Binance
+                  terlebih dahulu.
+                </p>
+              )}
               <p className="flex items-center gap-1.5 text-[11px] text-[#848E9C]">
                 <Timer className="h-3.5 w-3.5" />
                 Pairing berlaku 5 menit • Valid for 5 minutes

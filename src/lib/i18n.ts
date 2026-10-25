@@ -191,7 +191,10 @@ const ZH = {
   retry: "重试",
   poweredBySdk: "币安官方 Web3 Connect SDK · 真实配对",
   walletActiveHint: "连接的地址 = 币安 App 中当前“启用”的 Web3 钱包（如 BLOCXERZ）。想用其他钱包：先在币安 App「我的钱包」中切换启用目标钱包，再扫码确认即可。",
-  agenticNote: "Agentic Wallet（Agent ID，如 everhand.ai）是独立产品，供 AI Agent 通过 Binance Skills 使用，暂不支持第三方网页 dApp 连接。",
+  agenticNote: "Agentic Wallet（Agent ID，如 everhand.ai）是独立产品：ptah.trade 等官方合作伙伴用它登录，目前仅向 Binance 合作伙伴开放。本站使用币安官方 Web3 Connect SDK 登录，并要求钱包持有 Agentic ID NFT。",
+  agentIdGate: "进入条件：钱包必须持有 Agentic ID NFT（SPACE ID Agent ID，BNB Chain 主网，合约 ",
+  agentIdRequired: "此钱包未持有 Agentic ID NFT（SPACE ID Agent ID，BNB Chain 主网）——拒绝进入。请先用 Binance Agentic Wallet 领取 .ai Agent ID，再用该钱包登录。",
+  agentIdChecking: "正在验证 Agentic ID NFT…",
   qrFooter:
     "扫码即表示你同意：挖矿奖励以游戏余额形式记录，提现时自动铸造为 BEP-20 代币到你的 BNB Chain 钱包，手续费注入 PancakeSwap 流动性。本站为游戏演示，与 Binance 官方无关。",
   scanning: "正在扫描浏览器中的钱包...",
@@ -396,7 +399,10 @@ const EN: Record<keyof typeof ZH, string> = {
   retry: "Retry",
   poweredBySdk: "Official Binance Web3 Connect SDK · real pairing",
   walletActiveHint: "The connected address = the ACTIVE Web3 wallet in your Binance App (e.g. BLOCXERZ). To use a different wallet: switch the active wallet in Binance App → My Wallets first, then scan & approve.",
-  agenticNote: "The Agentic Wallet (Agent ID, e.g. everhand.ai) is a separate product for AI agents via Binance Skills — it can't connect to third-party web dApps yet.",
+  agenticNote: "The Agentic Wallet (Agent ID, e.g. everhand.ai) is a separate product used by official partners like ptah.trade — access is currently limited to Binance partners. This site uses the official Binance Web3 Connect SDK and additionally requires holding the Agentic ID NFT.",
+  agentIdGate: "Entry requirement: your wallet must hold the Agentic ID NFT (SPACE ID Agent ID, BNB Chain mainnet, contract ",
+  agentIdRequired: "This wallet does not hold the Agentic ID NFT (SPACE ID Agent ID on BNB Chain mainnet) — entry denied. Claim a .ai Agent ID in the Binance Agentic Wallet first, then sign in with that wallet.",
+  agentIdChecking: "Verifying Agentic ID NFT…",
   qrFooter:
     "By scanning, you agree that mining rewards are recorded as game balance; withdrawals are auto-minted as BEP-20 tokens to your BNB Chain wallet, with the fee added to PancakeSwap liquidity. This is a demo game — not affiliated with Binance.",
   scanning: "Scanning for wallets in your browser...",
