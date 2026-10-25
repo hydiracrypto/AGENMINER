@@ -195,3 +195,28 @@ Work Log:
 Stage Summary:
 - QR pairing kini benar-benar berfungsi lintas perangkat (scan → approve → auto-login), arsitektur sama dgn ptah.trade tapi berjalan di server sendiri
 - Catatan: integrasi ke Binance App asli tetap butuh kerja sama resmi Binance (Agent Wallet SDK partner)
+
+---
+Task ID: 6
+Agent: Z.ai (main agent)
+Task: Pairing ASLI seperti ptah.trade menggunakan SDK partner resmi Binance (permintaan: "Tolong buatkan pairing asli seperti ptah.trade membutuhkan SDK partner resmi dari Binance") — sekaligus mengatasi bug "Open Binance sign-in qr failed".
+
+Work Log:
+- Riset: docs resmi developers.binance.com (Web3 Connect / EVM-Compatible Provider), npm metadata @binance/w3w-* (provider 1.1.13, utils 1.1.8, types, sign-client, core), contoh resmi github.com/sunopar/test-sdk, dekompilasi bundle w3w-utils utk format deep link resmi (bnc://app.binance.com/mp/app?appId=xoqXxUSMRccLCrZNRebmzj&startPagePath=... + universal https://app.binance.com/?_dp=...).
+- Simpulan riset: SDK resmi @binance/w3w-ethereum-provider TIDAK butuh projectId WalletConnect — relay milik Binance (wss://nbstream.binance.com/wallet-connector, nbstream.binance.info, nbstream.yshyqxx.com); event `uri_ready` memberi URI WalletConnect asli utk QR kustom; @binance/w3w-utils menyediakan openBinanceDeepLink(wc) resmi.
+- Install: bun add @binance/w3w-ethereum-provider @binance/w3w-utils buffer.
+- src/lib/polyfill-buffer.ts baru: polyfill global Buffer/process/global di browser (SDK memakai Buffer.from & process.versions; Turbopack tidak mem-polyfill).
+- src/components/game/wallet-connect-modal.tsx dirombak total:
+  • METODE 1 (default) "Binance App": dynamic import SDK → getProvider({chainId:56, showQrCodeModal:false}) → listener uri_ready → QR asli (qrcode lib) → provider.enable() → accounts[0] → api.login → auto masuk game. Tombol "Open Binance sign-in" = openBinanceDeepLink(wcUri) resmi. Jalur injected window.binancew3w bila dalam dApp browser Binance. Reuse sesi connected singleton; timeout 20s tanpa URI → state failed + Retry; penanganan reject user.
+  • METODE 2 "Pairing Link": alur server /api/pair/* (create/approve/status) yang sudah ada — scan kamera mana pun, buka /pair/{code}, TTL 300s.
+  • Fallback wallet browser EIP-6963 tetap ada di kedua metode.
+- Bug kritis ditemukan & diperbaiki: "Maximum update depth exceeded" — t dari useT() tidak stabil (fungsi baru tiap render) → startBinance berganti identitas → effect buka-modal re-run tiap render → loop setState (setSdkStatus loading<->waiting). Fix: pola latestRef (effect hanya bergantung [open]), switchMethod via latestRef, pesan i18n utk closure SDK disimpan di ref (ERR_REJECTED/ERR_SDK).
+- i18n zh/en: key baru methodBinance, methodPair, binanceQrHint, openBinance, sdkWaiting, sdkFailed, retry, poweredBySdk.
+- E2E agent-browser: desktop 1440 & mobile 420, zh & en — modal terbuka tanpa error, QR ASLI dari relay Binance tampil (hasQr=true, 16KB dataURL; QR padat = URI WalletConnect nyata, bukan URL pendek), tombol deep link aktif, tab Pairing Link berfungsi (code 209eed, countdown), Confirm login sukses (user baru MetaRanger34 / 0xe9c0...c4f5). Console browser menunjukkan SDK resolve relay resmi Binance.
+- Screenshot: download/v6-binance-sdk-qr-desktop-zh.png, v6-binance-sdk-qr-desktop-en.png, v6-binance-sdk-qr-mobile-zh.png, v6-pair-login-success-zh.png.
+- Lint bersih; commit e21afb1 push ke GitHub (e8b39b0..e21afb1 main).
+
+Stage Summary:
+- Pairing login kini ASLI via SDK partner resmi Binance: QR = URI WalletConnect nyata dari relay Binance, dipindai Binance App → approve di Binance Web3 Wallet → alamat nyata → login game. Tombol "Open Binance sign-in" memakai deep link resmi (mobile → langsung buka Binance App).
+- Bug "Open Binance sign-in qr failed" tuntas diakar: URL palsu app.binance.com/agent-connect diganti mekanisme nyata; infinite loop React juga ditemukan & diperbaiki.
+- Metode pairing server (/pair) + wallet browser tetap tersedia sebagai fallback.
