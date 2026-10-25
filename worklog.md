@@ -260,3 +260,4 @@ Stage Summary:
 - Login: logout → SDK session dibunuh → login berikutnya WAJIB scan/approve ulang.
 - Semua jalur masuk (SDK QR, wallet browser, pairing link) di-gate NFT SPACE ID Agent ID 0x60B9...022F; tanpa NFT ditolak di client & server.
 - ptah.trade memakai akses partner resmi Binance Agent Wallet (uni-qr) yang belum terbuka publik — dijelaskan di UI; kita tetap pakai QR WalletConnect resmi via relay Binance.
+- Catatan push: commit lokal "feat: Agentic Miner dApp metadata + Agentic ID NFT gate..." tersimpan; git push GAGAL (kredensial GitHub tidak tersedia di environment: "could not read Username"). Push ulang perlu token GitHub (gh auth login / remote dengan token).
