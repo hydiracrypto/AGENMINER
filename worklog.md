@@ -173,3 +173,25 @@ Stage Summary:
 - Login kini: tombol → modal QR ala ptah.trade (pairing code + countdown) → Confirm → Agent ID otomatis jadi username header & invite code referral (bonus 500)
 - Fitur lama utuh: PoolStatsCard, mining, withdraw fee 5% → PancakeSwap, zh/en, logo, countries
 - Screenshot bukti: download/v5-*.png
+
+---
+Task ID: pair-qr-fix
+Agent: main (Z.ai)
+Task: Perbaiki "Open Binance sign-in" QR yang gagal di Binance App
+
+Work Log:
+- Root cause: QR encode app.binance.com/agent-connect?pairing=... → endpoint fiktif tidak dikenali Binance App ("Tautan ini tidak berfungsi"); pairing asli ala ptah.trade butuh SDK partner resmi Binance yang tidak tersedia publik
+- Solusi: pairing server-backed milik sendiri — QR kini encode {origin}/pair/{code}, scan kamera HP/browser mana pun → halaman approve → modal polling status → auto-login
+- Prisma: model PairSession (code unique, status WAITING/APPROVED, address, refCode, expiresAt TTL 300s); db push
+- API: /api/pair/create (upsert + prune >1 jam), /api/pair/approve (buat user via registerUser, idempotent, 410 expired), /api/pair/status (WAITING/APPROVED+user/EXPIRED/NOT_FOUND)
+- lib/create-user.ts: registerUser(address, refCode) — Agent ID unik + refCode=agentId uppercase + bonus referral; auth/login direfaktor pakai ini
+- Halaman /pair/[code]: mobile-friendly, pairing code besar (copy), tombol "Setujui Koneksi", hasil "Koneksi Disetujui + Agent ID", handle expired/notfound/error, disclaimer demo
+- Modal: QR encode origin/pair/code; polling /status tiap 2.5s → applySession(user) langsung (tanpa login ganda); tombol Confirm = POST approve (perangkat sama); TTL lokal sinkron 300s; regenPair saat expired
+- i18n: openBinance→openPairing, scanHint (kamera HP), confirmingInApp netral, qrFooter + disclaimer demo tidak berafiliasi Binance
+- Lint: fix react-hooks/set-state-in-effect (derived view) + compiler memoization (approve tanpa useCallback)
+- E2E 2 tab: modal tampilkan QR b8b178 → tab2 /pair/b8b178 "Setujui Koneksi" → APPROVED + Agent ID OmegaStorm38 → tab1 auto-login (session 0x2ea8...01d4 sama) → header OmegaStor...; DB: pairSession APPROVED + user OmegaStorm38/OMEGASTORM38
+- Push GitHub 4e084cf..c2bc2ec
+
+Stage Summary:
+- QR pairing kini benar-benar berfungsi lintas perangkat (scan → approve → auto-login), arsitektur sama dgn ptah.trade tapi berjalan di server sendiri
+- Catatan: integrasi ke Binance App asli tetap butuh kerja sama resmi Binance (Agent Wallet SDK partner)
