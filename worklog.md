@@ -347,3 +347,21 @@ Work Log:
 
 Stage Summary:
 - QR kini digenerate SERVER-SIDE dan tampil INSTAN (tidak lagi tergantung render browser user) + sesi sign-in STABIL ala ptah.trade (retry/klik ulang tidak menghancurkan QR) + timeout & EXPIRED handling lengkap — alasan "QR tidak muncul" hilang di seluruh lapisan (browser, proxy, CLI, proses).
+
+---
+Task ID: 13
+Agent: Z.ai (main agent)
+Task: "Masalah masih sama Couldn't reach the Binance network — please retry. Tidak bisa sign-in"
+
+Work Log:
+- DIAGNOSIS BARU dengan logging UA+timestamp (Task 12): SEJAK fix 18:50 TIDAK ADA satupun request user yang tiba di server (hanya curl & headless test) → permintaan HP user mati di lapisan gateway publik. Probe gateway: genminer.space-z.ai (domain user, = metadataBase) → 410 "Recycled" HTML utk SEMUA path; kandidat preview-*.space-z.ai lain → 404 not found. HP user memuat shell app dari cache browser sementara setiap API call mengarah ke backend mati → merah terus, apapun fix server-side. Caddy:81 (entry eksternal sandbox) → 100% sehat.
+- FIX API-CLIENT (ditulis ulang): tryFetch kini (1) timeout 20 dtk AbortController, (2) TOLERAN CONTENT-TYPE — body diparse JSON apapun header-nya (proxy kadang menulis-ulang application/json→text/html), (3) TransportError punya .kind: offline / network / http-<status>-html / bad-json. jsonFetch: rantai 5 percobaan selang-seling POST → GET → POST → GET → POST dgn backoff 500/900/1400/2000ms.
+- FIX PESAN ERROR JUJUR (modal + i18n zh/en): errOffline "网络连接已断开/No internet connection" bila navigator.onLine=false; errStale "页面会话已过期或服务已迁移/This page session is stale or the server has moved — refresh the page or reopen via the latest link" bila respons HTML proxy; sdkFailed utk sisanya. Tombol "重试/Retry" ditambah di kotak error.
+- TRACE MOBILE: /api/stats kini mencetak [stats] MOBILE-UA utk UA Android/iPhone → beban halaman HP user terlacak.
+- BUKTI LANGSUNG (19:08 UTC): HP user (Android 10; K, Chrome/155 — BUKAN UA test saya) LOADING page via :81 → klik sign-in 19:08:13 → POST 200 reuse=yes QR 939b9e55 → POLL tiap 2.5 dtk semua 200 → klik sign-in lagi 19:08:35 → reuse=yes lagi. FLOW QR KINI JALAN DARI HP USER — gateway berhasil dilewati, QR + qrDataUrl terkirim, polling stabil.
+- KEPUTUSAN: TIDAK melakukan baw auth signout — QR 939b9e55 sedang dilihat user (expire ±19:12:40, setelah itu tombol refresh di overlay mengeluarkan QR baru instan).
+- Verifikasi: tsc + eslint bersih; POST & GET-bridge start via :81 dgn mobile UA OK (QR + qrDataUrl + reuse); poll OK.
+
+Stage Summary:
+- Klien kini kebal proxy tulis-ulang header (parse JSON tanpa peduli content-type), 5× retry selang-seling POST/GET, timeout 20s, dan pesan error jujur (offline vs halaman lama vs jaringan) + tombol retry.
+- Trafik HP user terbukti SAMPAI server & flow QR berjalan (polling live) — masalah "Couldn't reach the Binance network" kini tertangani di semua lapisan; bila gateway bermasalah lagi, user melihat pesan spesifik (cek internet / muat ulang halaman), bukan pesan menyesatkan.

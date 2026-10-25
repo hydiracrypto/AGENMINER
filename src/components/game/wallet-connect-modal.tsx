@@ -234,8 +234,19 @@ export default function WalletConnectModal({
       setStart(data);
       setSecondsLeft(data.secondsLeft);
       setView("connecting");
-    } catch {
-      setErr({ msg: tRef.current("sdkFailed") });
+    } catch (e) {
+      // Pesan jujur sesuai jenis kegagalan transport:
+      // offline → tidak ada internet; HTML proxy → halaman lama/server pindah;
+      // lainnya → gagal jaringan generik.
+      const kind = (e as { kind?: string } | null)?.kind ?? "";
+      const msg = kind
+        ? /offline/.test(kind)
+          ? tRef.current("errOffline")
+          : /html|bad-json/.test(kind)
+            ? tRef.current("errStale")
+            : tRef.current("sdkFailed")
+        : tRef.current("sdkFailed");
+      setErr({ msg });
       setView("idle");
       setBadge("notConnected");
     }
@@ -325,6 +336,12 @@ export default function WalletConnectModal({
                 {err.address && (
                   <p className="mt-1 break-all font-mono text-[10px] text-[#848E9C]">{err.address}</p>
                 )}
+                <button
+                  onClick={handleAgenticSignIn}
+                  className="mt-1.5 text-[11px] font-bold text-[#F0B90B] underline underline-offset-2"
+                >
+                  {t("retryConnect")}
+                </button>
               </div>
               <button onClick={() => setErr(null)} className="ml-auto shrink-0 text-[#848E9C] hover:text-[#EAECEF]">
                 <X className="h-3.5 w-3.5" />

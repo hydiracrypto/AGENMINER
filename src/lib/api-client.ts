@@ -1,11 +1,13 @@
 // ============================================
 // AGENTIC MINER — API Client (frontend → backend)
 // RESILIENT: tahan gangguan jaringan/proxy.
-// Strategi untuk setiap permintaan POST:
-//   1. POST JSON
-//   2. gagal jaringan/proxy (HTML 410/502, koneksi putus) → tunggu → GET ?params
-//   3. gagal lagi → tunggu → POST sekali lagi
-// Error API yang sah (JSON 400/403/404/500) TIDAK di-retry — langsung dilempar.
+// Strategi untuk setiap permintaan POST (5 percobaan, selang-seling):
+//   POST → GET ?params → POST → GET ?params → POST
+// - Respons non-JSON (HTML 410/502 "Recycled" proxy, koneksi putus, timeout) =
+//   TransportError → di-retry.
+// - JSON diparse TANPA peduli content-type (proxy kadang menulis-ulang header).
+// - Error API yang sah (JSON 4xx/5xx) TIDAK di-retry — langsung dilempar.
+// TransportError.kind → dipakai UI untuk pesan yang jujur (offline / halaman lama).
 // ============================================
 
 import type {
@@ -18,7 +20,14 @@ import type {
 } from "./types";
 
 /** Kegagalan transport (bukan error API) — layak di-retry / fallback GET */
-class TransportError extends Error {}
+class TransportError extends Error {
+  /** "network" | "timeout" | "http-<status>-html" | "bad-json" */
+  kind: string;
+  constructor(kind: string) {
+    super(kind);
+    this.kind = kind;
+  }
+}
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
@@ -29,18 +38,28 @@ async function tryFetch<T>(url: string, init?: RequestInit): Promise<T> {
     // Timeout manual (AbortController — kompatibel browser lama): request yang
     // menggantung di gateway/proxy diubah menjadi TransportError → di-retry.
     const ac = new AbortController();
-    const timer = setTimeout(() => ac.abort(), 12_000);
+    const timer = setTimeout(() => ac.abort(), 20_000);
     res = await fetch(url, { ...init, signal: ac.signal }).finally(() => clearTimeout(timer));
   } catch {
     // koneksi putus / DNS / offline / timeout
-    throw new TransportError("network");
+    throw new TransportError(
+      typeof navigator !== "undefined" && navigator.onLine === false ? "offline" : "network"
+    );
   }
-  const isJson = (res.headers.get("content-type") ?? "").includes("json");
-  if (!isJson) {
-    // Respons HTML (mis. halaman "Recycled"/410/502 dari proxy) — retriable
+  // JSON diparse TANPA peduli content-type — proxy kadang menulis-ulang header
+  // (mis. application/json → text/html) padahal body JSON sah.
+  const raw = await res.text().catch(() => "");
+  let data: Record<string, unknown> | null = null;
+  try {
+    const v = JSON.parse(raw);
+    if (typeof v === "object" && v !== null) data = v as Record<string, unknown>;
+  } catch {
+    data = null;
+  }
+  if (data === null) {
+    // Body HTML/bukan-JSON (mis. halaman "Recycled"/410/502 dari proxy) — retriable
     throw new TransportError(`http-${res.status}-html`);
   }
-  const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
   if (!res.ok) {
     const err = new Error((data.error as string) ?? `HTTP ${res.status}`) as Error & {
       remainingMs?: number;
@@ -55,31 +74,27 @@ async function tryFetch<T>(url: string, init?: RequestInit): Promise<T> {
   return data as T;
 }
 
-/** Fetch tangguh: POST → GET fallback → POST ulang */
+/** Fetch tangguh: POST → GET → POST → GET → POST (5 percobaan) */
 async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
   const isPost = init?.method === "POST";
   const bodyObj = isPost && typeof init?.body === "string" ? safeParse(init.body) : null;
+  if (!isPost || !bodyObj) return tryFetch<T>(url, init);
 
-  // 1) percobaan asli
-  try {
-    return await tryFetch<T>(url, init);
-  } catch (e) {
-    if (!(e instanceof TransportError) || !isPost || !bodyObj) throw e;
+  const qs = new URLSearchParams(bodyObj as Record<string, string>).toString();
+  const getUrl = `${url}${url.includes("?") ? "&" : "?"}${qs}`;
+  const backoff = [500, 900, 1400, 2000];
+  let lastErr: unknown;
+
+  for (let i = 0; i < 5; i++) {
+    if (i > 0) await sleep(backoff[Math.min(i - 1, backoff.length - 1)]);
+    try {
+      return i % 2 === 0 ? await tryFetch<T>(url, init) : await tryFetch<T>(getUrl, { method: "GET" });
+    } catch (e) {
+      if (!(e instanceof TransportError)) throw e; // error API sah — jangan di-retry
+      lastErr = e;
+    }
   }
-
-  // 2) fallback GET dengan query params (melewati proxy yang bermasalah dgn POST)
-  await sleep(600);
-  try {
-    const qs = new URLSearchParams(bodyObj as Record<string, string>).toString();
-    const sep = url.includes("?") ? "&" : "?";
-    return await tryFetch<T>(`${url}${sep}${qs}`, { method: "GET" });
-  } catch (e) {
-    if (!(e instanceof TransportError)) throw e;
-  }
-
-  // 3) POST ulang sekali terakhir
-  await sleep(900);
-  return tryFetch<T>(url, init);
+  throw lastErr;
 }
 
 function safeParse(s: string): Record<string, unknown> | null {

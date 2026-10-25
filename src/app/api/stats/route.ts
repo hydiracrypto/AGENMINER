@@ -1,10 +1,15 @@
 // GET /api/stats — Statistik global token, mining & likuiditas PancakeSwap
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { TOKEN, WITHDRAW, PANCAKESWAP } from "@/lib/game-config";
 import type { GlobalStats } from "@/lib/types";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  // Trace perangkat mobile (HP user) — hanya UA mobile yang dicatat agar log tidak banjir
+  const ua = req.headers.get("user-agent") ?? "";
+  if (/Android|iPhone|iPad|Mobile/i.test(ua)) {
+    console.log(`[stats] ${new Date().toISOString()} MOBILE-UA="${ua.slice(0, 90)}"`);
+  }
   try {
     const [minedAgg, minerCount, mineCount, liqAgg] = await Promise.all([
       db.user.aggregate({ _sum: { totalMined: true } }),
