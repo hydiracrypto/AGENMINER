@@ -2,8 +2,12 @@
 
 // ============================================
 // AGENTIC MINER — Agent Wallet Connect (ala ptah.trade)
-// Aliran: QR Code + Pairing Code → konfirmasi di Binance App
-// → Agent ID jadi username & invite code.
+// Pairing server-backed yang benar-benar berfungsi:
+// 1. Modal membuat sesi pairing (POST /api/pair/create)
+// 2. QR membuka halaman /pair/{code} (bisa discan kamera HP mana pun)
+// 3. Halaman pair menyetujui (POST /api/pair/approve) → akun + Agent ID dibuat
+// 4. Modal polling /api/pair/status → otomatis login saat APPROVED
+// Tombol "Confirm" = shortcut approve di perangkat yang sama (demo).
 // ============================================
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -14,13 +18,13 @@ import {
   Loader2,
   ShieldCheck,
   RefreshCw,
-  Smartphone,
   Wallet,
   Keyboard,
   ChevronDown,
   AlertTriangle,
   Copy,
   Check,
+  ExternalLink,
 } from "lucide-react";
 import {
   connectProvider,
@@ -32,8 +36,10 @@ import { api } from "@/lib/api-client";
 import { useGameStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { isValidEvmAddress } from "@/lib/game-config";
+import type { PublicUser } from "@/lib/types";
 
 const PAIR_TTL = 300; // detik — sama seperti ptah.trade
+const POLL_MS = 2500;
 
 interface Props {
   open: boolean;
@@ -49,11 +55,7 @@ function newPairingCode(): string {
   return c;
 }
 
-function pairingUrl(code: string): string {
-  return `https://app.binance.com/agent-connect?pairing=${code}&app=AGENTIC-MINER&chain=BNB`;
-}
-
-/** Alamat EVM acak untuk mode demo QR (simulasi wallet Binance) */
+/** Alamat EVM acak untuk mode demo (simulasi wallet Binance) */
 function randomEvmAddress(): string {
   const hex = "0123456789abcdef";
   let a = "0x";
@@ -67,6 +69,7 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
 
   const [phase, setPhase] = useState<Phase>("connecting");
   const [pairCode, setPairCode] = useState("");
+  const [pairUrl, setPairUrl] = useState("");
   const [qrData, setQrData] = useState("");
   const [secsLeft, setSecsLeft] = useState(PAIR_TTL);
   const [copiedPair, setCopiedPair] = useState(false);
@@ -78,14 +81,100 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
   const [connecting, setConnecting] = useState<string | null>(null);
 
   const mounted = useRef(true);
+  const pollIv = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pairCodeRef = useRef("");
+
+  const stopPoll = useCallback(() => {
+    if (pollIv.current) {
+      clearInterval(pollIv.current);
+      pollIv.current = null;
+    }
+  }, []);
+
+  /** Terapkan sesi login dari hasil approve (tanpa membuat user ganda) */
+  const applySession = useCallback(
+    (user: PublicUser) => {
+      saveSession({ address: user.walletAddress, walletName: "Binance Agent Wallet", loginAt: Date.now() });
+      setUser(user);
+      onClose();
+    },
+    [setUser, onClose]
+  );
+
+  /** Approve dari perangkat yang sama (tombol Confirm) — lewat API agar sesi sama */
+  const approveHere = useCallback(async () => {
+    if (!pairCodeRef.current) return;
+    setPhase("confirming");
+    setError(null);
+    try {
+      const res = await fetch("/api/pair/approve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: pairCodeRef.current }),
+      });
+      const d = await res.json();
+      if (!res.ok || !d?.ok) {
+        if (res.status === 410) {
+          setPhase("expired");
+        } else {
+          setError(d?.error ?? t("errLogin"));
+          setPhase("connecting");
+        }
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 1200)); // animasi konfirmasi singkat
+      applySession(d.user);
+    } catch {
+      if (mounted.current) {
+        setError(t("errLogin"));
+        setPhase("connecting");
+      }
+    }
+  }, [applySession, t]);
+
+  const startPolling = useCallback(() => {
+    stopPoll();
+    pollIv.current = setInterval(async () => {
+      if (!pairCodeRef.current) return;
+      try {
+        const res = await fetch(`/api/pair/status?code=${pairCodeRef.current}`);
+        const d = await res.json();
+        if (!mounted.current) return;
+        if (d?.status === "APPROVED" && d?.user) {
+          stopPoll();
+          applySession(d.user);
+        } else if (d?.status === "EXPIRED" || d?.status === "NOT_FOUND") {
+          stopPoll();
+          setPhase("expired");
+        }
+      } catch {
+        /* jaringan sempat gagal → coba di tick berikutnya */
+      }
+    }, POLL_MS);
+  }, [applySession, stopPoll]);
 
   const regenPair = useCallback(() => {
-    setPairCode(newPairingCode());
+    const code = newPairingCode();
+    pairCodeRef.current = code;
+    setPairCode(code);
+    setPairUrl(`${window.location.origin}/pair/${code}`);
     setSecsLeft(PAIR_TTL);
     setQrData("");
     setPhase("connecting");
     setError(null);
-  }, []);
+    // daftarkan sesi ke server (dengan referral bila ada)
+    fetch("/api/pair/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code, refCode: refCode ?? undefined }),
+    })
+      .then(() => {
+        startPolling();
+      })
+      .catch(() => {
+        startPolling(); // tetap polling; approve tanpa create → NOT_FOUND → expired
+      });
+  }, [refCode, startPolling]);
 
   // Reset tiap kali modal dibuka
   useEffect(() => {
@@ -103,16 +192,18 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
       .catch(() => {});
     return () => {
       mounted.current = false;
+      stopPoll();
     };
-  }, [open, regenPair]);
+  }, [open, regenPair, stopPoll]);
 
-  // Countdown 300s → expired
+  // Countdown 300s → expired (server TTL sama)
   useEffect(() => {
     if (!open || phase !== "connecting") return;
     const iv = setInterval(() => {
       setSecsLeft((s) => {
         if (s <= 1) {
           clearInterval(iv);
+          stopPoll();
           if (mounted.current) setPhase("expired");
           return 0;
         }
@@ -120,12 +211,12 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
       });
     }, 1000);
     return () => clearInterval(iv);
-  }, [open, phase, pairCode]);
+  }, [open, phase, pairCode, stopPoll]);
 
   // Render QR ke data URL
   useEffect(() => {
-    if (!open || !pairCode) return;
-    QRCode.toDataURL(pairingUrl(pairCode), {
+    if (!open || !pairUrl) return;
+    QRCode.toDataURL(pairUrl, {
       width: 512,
       margin: 1,
       errorCorrectionLevel: "M",
@@ -135,32 +226,7 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
         if (mounted.current) setQrData(url);
       })
       .catch(() => {});
-  }, [open, pairCode]);
-
-  const completeLogin = useCallback(
-    async (address: string, walletName: string) => {
-      try {
-        const res = await api.login(address, refCode ?? undefined);
-        saveSession({ address: res.user.walletAddress, walletName, loginAt: Date.now() });
-        setUser(res.user);
-        onClose();
-      } catch (err) {
-        if (mounted.current) {
-          setError(err instanceof Error ? err.message : t("errLogin"));
-          setPhase("connecting");
-        }
-      }
-    },
-    [refCode, setUser, onClose, t]
-  );
-
-  /** Demo: simulasi konfirmasi di Binance App (real pairing butuh integrasi resmi Binance) */
-  const confirmInBinanceApp = useCallback(async () => {
-    setPhase("confirming");
-    setError(null);
-    await new Promise((r) => setTimeout(r, 1500)); // animasi konfirmasi
-    await completeLogin(randomEvmAddress(), "Binance Agent Wallet");
-  }, [completeLogin]);
+  }, [open, pairUrl]);
 
   const handleBrowserWallet = useCallback(
     async (opt: WalletOption) => {
@@ -169,7 +235,11 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
       setError(null);
       try {
         const address = await connectProvider(opt.provider);
-        await completeLogin(address, opt.name);
+        if (!isValidEvmAddress(address)) throw new Error("invalid address");
+        const res = await api.login(address.toLowerCase(), refCode ?? undefined);
+        saveSession({ address: res.user.walletAddress, walletName: opt.name, loginAt: Date.now() });
+        setUser(res.user);
+        onClose();
       } catch (err) {
         const msg =
           err instanceof Error
@@ -182,12 +252,8 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
         if (mounted.current) setConnecting(null);
       }
     },
-    [completeLogin, t]
+    [refCode, setUser, onClose, t]
   );
-
-  const handleDemoAddress = useCallback(async () => {
-    await completeLogin(randomEvmAddress(), "Binance Agent Wallet");
-  }, [completeLogin]);
 
   const copyPair = async () => {
     try {
@@ -248,7 +314,7 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
 
         <div className="max-h-[75vh] overflow-y-auto px-5 py-5">
           {phase === "confirming" ? (
-            /* ── Fase konfirmasi di Binance App ── */
+            /* ── Fase konfirmasi ── */
             <div className="flex flex-col items-center gap-5 py-8">
               <div className="relative">
                 <div className="absolute -inset-3 animate-pulse rounded-full bg-[#20B26C]/20 blur-xl" />
@@ -263,7 +329,7 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
               <Loader2 className="h-5 w-5 animate-spin text-[#F0B90B]" />
             </div>
           ) : (
-            /* ── Fase connecting / expired: tampilan QR ala ptah.trade ── */
+            /* ── Fase connecting / expired: tampilan QR ── */
             <>
               <p className="text-center text-[13px] leading-relaxed text-[#848E9C]">
                 {t("qrSubtitle")}
@@ -276,7 +342,7 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
                     {qrData ? (
                       <img
                         src={qrData}
-                        alt="Binance Agent Wallet pairing QR"
+                        alt="Agent Wallet pairing QR"
                         className={`h-44 w-44 transition-opacity ${phase === "expired" ? "opacity-20" : ""}`}
                       />
                     ) : (
@@ -321,15 +387,15 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
                 </p>
               </div>
 
-              {/* Open Binance sign-in */}
+              {/* Buka halaman pairing (jadi juga untuk "scan" di perangkat yang sama) */}
               <a
-                href={pairingUrl(pairCode)}
+                href={pairUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#F0B90B]/40 bg-[#F0B90B]/10 text-sm font-bold text-[#F0B90B] transition-colors hover:bg-[#F0B90B]/20"
               >
-                <Smartphone className="h-4 w-4" />
-                {t("openBinance")}
+                <ExternalLink className="h-4 w-4" />
+                {t("openPairing")}
               </a>
 
               {/* Status menunggu */}
@@ -359,7 +425,7 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
                   {t("cancelConnect")}
                 </Button>
                 <Button
-                  onClick={confirmInBinanceApp}
+                  onClick={approveHere}
                   disabled={phase === "expired"}
                   className="h-11 rounded-xl bg-gradient-to-r from-[#F8D33A] to-[#F0B90B] text-sm font-extrabold text-[#0B0E11] hover:opacity-90 disabled:opacity-40"
                 >

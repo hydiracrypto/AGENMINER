@@ -83,3 +83,16 @@ model LiquidityLog {
 
   @@index([createdAt])
 }
+
+// Sesi pairing QR ala Agent Wallet: dibuat modal, di-approve dari halaman /pair
+model PairSession {
+  id        String   @id @default(cuid())
+  code      String   @unique // pairing code 6-hex
+  status    String   @default("WAITING") // WAITING | APPROVED
+  address   String?  // wallet address yang dibuat saat approve
+  refCode   String?  // kode referral (dari URL ?ref=) diteruskan modal
+  createdAt DateTime @default(now())
+  expiresAt DateTime // createdAt + 300s
+
+  @@index([createdAt])
+}
