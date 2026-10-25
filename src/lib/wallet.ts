@@ -198,27 +198,6 @@ export function clearSession() {
   }
 }
 
-// ---------- SDK Binance W3W (singleton registry) ----------
-// Simpan instance provider SDK @binance/w3w-ethereum-provider agar logout
-// bisa memutus koneksi WalletConnect → sesi berikutnya WAJIB scan/approve ulang.
-
-let w3wInstance: { disconnect?: () => void } | null = null;
-
-/** Catat instance provider SDK yang dipakai modal (dipanggil saat startBinance) */
-export function registerW3W(p: { disconnect?: () => void } | null) {
-  w3wInstance = p;
-}
-
-/** Putus koneksi SDK Binance (kill session WalletConnect + bersihkan storage SDK) */
-export function disconnectW3W() {
-  try {
-    w3wInstance?.disconnect?.();
-  } catch {
-    /* ignore */
-  }
-  w3wInstance = null;
-}
-
 // ---------- Agentic ID NFT pre-check (CLIENT) ----------
 // Server tetap memverifikasi ulang di /api/auth/login (sumber kebenaran).
 export interface AgentIdProbe {

@@ -14,6 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://genminer.space-z.ai"),
   title: "AGENTIC MINER — 用 AI 提示词在 BNB Chain 挖矿 | Mine AGENMINER with AI Prompts",
   description:
     "AGENTIC MINER (AGENMINER) 挖矿游戏 — BNB Smart Chain 主网，固定供应 1 亿枚。使用 Binance Agentic Wallet 登录，AI 提示词挖矿，提现无最低限额，手续费自动注入 PancakeSwap 流动性。 | AGENMINER mining game on BNB Smart Chain mainnet — sign in with Binance Agentic Wallet, mine with AI prompts, no minimum withdrawal, fees auto-added to PancakeSwap liquidity.",
@@ -30,9 +31,7 @@ export const metadata: Metadata = {
     "no minimum withdrawal",
     "crypto countries",
   ],
-  // ⚠️ @binance/w3w SDK membaca nama dApp dari <meta name="name"> dulu (getClientMetadata),
-  // lalu og:site_name / og:title. Tanpa ini, wallet Binance menampilkan title panjang
-  // sebagai nama dApp saat approve (pengguna melihat nama yang salah).
+  // Nama dApp untuk wallet/OG — tampil "Agentic Miner" (bukan nama lain)
   other: {
     name: "Agentic Miner",
   },
@@ -50,6 +49,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  viewportFit: "cover", // env(safe-area-inset-*) aktif di perangkat notch
   themeColor: "#0B0E11",
 };
 

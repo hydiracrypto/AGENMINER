@@ -1,0 +1,880 @@
+     1→"use client";
+     2→
+     3→// ============================================
+     4→// AGENTIC MINER — Agent Wallet Connect (ala ptah.trade)
+     5→// METODE 1 (utama): SDK PARTNER RESMI Binance
+     6→//   @binance/w3w-ethereum-provider + @binance/w3w-utils
+     7→//   • QR = URI WalletConnect ASLI dari relay Binance (event `uri_ready`)
+     8→//   • Tombol "Open Binance sign-in" = deep link resmi (openBinanceDeepLink)
+     9→//   • Akun nyata dari Binance Web3 Wallet → login ke game
+    10→// METODE 2: Pairing link server (/api/pair/*) — scan kamera mana pun
+    11→// FALLBACK: wallet browser (EIP-6963 / injected Binance)
+    12→// ============================================
+    13→
+    14→import { useCallback, useEffect, useRef, useState } from "react";
+    15→import QRCode from "qrcode";
+    16→import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+    17→import { Button } from "@/components/ui/button";
+    18→import {
+    19→  Loader2,
+    20→  ShieldCheck,
+    21→  RefreshCw,
+    22→  Wallet,
+    23→  Keyboard,
+    24→  ChevronDown,
+    25→  AlertTriangle,
+    26→  Copy,
+    27→  Check,
+    28→  ExternalLink,
+    29→  Smartphone,
+    30→  BadgeCheck,
+    31→  Info,
+    32→} from "lucide-react";
+    33→import {
+    34→  connectProvider,
+    35→  getWalletOptions,
+    36→  saveSession,
+    37→  registerW3W,
+    38→  probeAgentId,
+    39→  type WalletOption,
+    40→  type EIP1193Provider,
+    41→} from "@/lib/wallet";
+    42→import "@/lib/polyfill-buffer"; // Buffer/process global untuk SDK resmi Binance
+    43→import { api } from "@/lib/api-client";
+    44→import { useGameStore } from "@/lib/store";
+    45→import { useT } from "@/lib/i18n";
+    46→import { isValidEvmAddress } from "@/lib/game-config";
+    47→import type { PublicUser } from "@/lib/types";
+    48→
+    49→const PAIR_TTL = 300; // detik — sama seperti ptah.trade
+    50→const POLL_MS = 2500;
+    51→const SDK_URI_TIMEOUT = 20_000; // batas tunggu URI dari relay Binance
+    52→
+    53→// Metadata dApp resmi yang tampil di layar approve Binance Wallet.
+    54→// SDK membaca <meta name="name">/og:site_name (dipasang di layout.tsx), tapi
+    55→// kita patch juga clientMeta pada coreConnection agar 100% pasti "Agentic Miner"
+    56→// + logo (bukan nama default/wallet aktif user seperti "BLOCXERZ").
+    57→function dappMeta() {
+    58→  if (typeof window === "undefined") return null;
+    59→  return {
+    60→    name: "Agentic Miner",
+    61→    description: "Mine AGENMINER with AI prompts on BNB Chain",
+    62→    url: window.location.origin,
+    63→    icons: [`${window.location.origin}/logo.png`],
+    64→  };
+    65→}
+    66→
+    67→/** Pastikan clientMeta SDK = Agentic Miner (patch coreConnection.signClient) */
+    68→function patchDappMeta(p: unknown) {
+    69→  try {
+    70→    const meta = dappMeta();
+    71→    if (!meta) return;
+    72→    const provider = p as { signClient?: { coreConnection?: { clientMeta?: unknown } } };
+    73→    const core = provider?.signClient?.coreConnection;
+    74→    if (core) core.clientMeta = meta;
+    75→  } catch {
+    76→    /* best-effort */
+    77→  }
+    78→}
+    79→
+    80→interface Props {
+    81→  open: boolean;
+    82→  onClose: () => void;
+    83→  refCode?: string | null;
+    84→}
+    85→
+    86→type Method = "binance" | "pair";
+    87→type Phase = "connecting" | "confirming" | "expired"; // alur pairing server
+    88→type SdkStatus = "loading" | "waiting" | "approving" | "failed"; // alur SDK Binance
+    89→
+    90→type W3WProvider = any;
+    91→
+    92→function newPairingCode(): string {
+    93→  let c = "";
+    94→  for (let i = 0; i < 6; i++) c += Math.floor(Math.random() * 16).toString(16);
+    95→  return c;
+    96→}
+    97→
+    98→/** Alamat EVM acak untuk mode demo (simulasi wallet Binance) */
+    99→function randomEvmAddress(): string {
+   100→  const hex = "0123456789abcdef";
+   101→  let a = "0x";
+   102→  for (let i = 0; i < 40; i++) a += hex[Math.floor(Math.random() * 16)];
+   103→  return a;
+   104→}
+   105→
+   106→export default function WalletConnectModal({ open, onClose, refCode }: Props) {
+   107→  const setUser = useGameStore((s) => s.setUser);
+   108→  const { t } = useT();
+   109→
+   110→  // ── metode aktif ──
+   111→  const [method, setMethod] = useState<Method>("binance");
+   112→
+   113→  // ── alur SDK Binance (real pairing) ──
+   114→  const [sdkStatus, setSdkStatus] = useState<SdkStatus>("loading");
+   115→  const [wcUri, setWcUri] = useState("");
+   116→  const [sdkErr, setSdkErr] = useState<string | null>(null);
+   117→  const providerRef = useRef<W3WProvider>(null);
+   118→  const enablingRef = useRef(false);
+   119→  const binanceCancelled = useRef(false);
+   120→  const uriTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+   121→
+   122→  // ── alur pairing server ──
+   123→  const [phase, setPhase] = useState<Phase>("connecting");
+   124→  const [pairCode, setPairCode] = useState("");
+   125→  const [pairUrl, setPairUrl] = useState("");
+   126→  const [secsLeft, setSecsLeft] = useState(PAIR_TTL);
+   127→  const [copiedPair, setCopiedPair] = useState(false);
+   128→  const [error, setError] = useState<string | null>(null);
+   129→
+   130→  // ── QR bersama ──
+   131→  const [qrData, setQrData] = useState("");
+   132→
+   133→  // fallback wallet browser (EIP-6963 / injected)
+   134→  const [showBrowser, setShowBrowser] = useState(false);
+   135→  const [options, setOptions] = useState<WalletOption[]>([]);
+   136→  const [connecting, setConnecting] = useState<string | null>(null);
+   137→
+   138→  const mounted = useRef(true);
+   139→  const pollIv = useRef<ReturnType<typeof setInterval> | null>(null);
+   140→  const pairCodeRef = useRef("");
+   141→
+   142→  // Pesan i18n terbaru untuk closure SDK (t tidak stabil antar render)
+   143→  const ERR_REJECTED = useRef("");
+   144→  const ERR_SDK = useRef("");
+   145→  useEffect(() => {
+   146→    ERR_REJECTED.current = t("errUserRejected");
+   147→    ERR_SDK.current = t("sdkFailed");
+   148→  });
+   149→
+   150→  const stopPoll = useCallback(() => {
+   151→    if (pollIv.current) {
+   152→      clearInterval(pollIv.current);
+   153→      pollIv.current = null;
+   154→    }
+   155→  }, []);
+   156→
+   157→  const renderQr = useCallback((payload: string) => {
+   158→    QRCode.toDataURL(payload, {
+   159→      width: 512,
+   160→      margin: 1,
+   161→      errorCorrectionLevel: "M",
+   162→      color: { dark: "#0B0E11", light: "#FFFFFF" },
+   163→    })
+   164→      .then((url) => {
+   165→        if (mounted.current) setQrData(url);
+   166→      })
+   167→      .catch(() => {});
+   168→  }, []);
+   169→
+   170→  // ══════════════════════════════════════════
+   171→  //  METODE 1 — SDK PARTNER RESMI BINANCE
+   172→  // ══════════════════════════════════════════
+   173→
+   174→  const handleBinanceAccounts = useCallback(
+   175→    async (accs: string[]) => {
+   176→      const addr = accs?.[0];
+   177→      if (!addr || !isValidEvmAddress(addr)) return;
+   178→      if (!mounted.current || binanceCancelled.current) return;
+   179→      setSdkStatus("approving");
+   180→      try {
+   181→        // ── GATE AGENTIC ID: wajib holder NFT SPACE ID Agent ID ──
+   182→        const probe = await probeAgentId(addr.toLowerCase());
+   183→        if (!mounted.current || binanceCancelled.current) return;
+   184→        if (!probe.hasNft) {
+   185→          setSdkStatus("failed");
+   186→          setSdkErr(t("agentIdRequired"));
+   187→          return;
+   188→        }
+   189→        const res = await api.login(addr.toLowerCase(), refCode ?? undefined);
+   190→        if (!mounted.current) return;
+   191→        if (!res.user) {
+   192→          setSdkStatus("failed");
+   193→          setSdkErr(t("agentIdRequired"));
+   194→          return;
+   195→        }
+   196→        saveSession({
+   197→          address: res.user.walletAddress,
+   198→          walletName: "Binance Web3 Wallet",
+   199→          loginAt: Date.now(),
+   200→        });
+   201→        setUser(res.user);
+   202→        onClose();
+   203→      } catch (err) {
+   204→        if (!mounted.current) return;
+   205→        const key = (err as { errorKey?: string })?.errorKey;
+   206→        setSdkStatus("failed");
+   207→        setSdkErr(key === "agent_id_required" ? t("agentIdRequired") : t("errLogin"));
+   208→      }
+   209→    },
+   210→    [refCode, setUser, onClose, t]
+   211→  );
+   212→
+   213→  const clearUriTimer = useCallback(() => {
+   214→    if (uriTimerRef.current) {
+   215→      clearTimeout(uriTimerRef.current);
+   216→      uriTimerRef.current = null;
+   217→    }
+   218→  }, []);
+   219→
+   220→  const startBinance = useCallback(async () => {
+   221→    if (typeof window === "undefined") return;
+   222→    binanceCancelled.current = false;
+   223→    setSdkStatus("loading");
+   224→    setWcUri("");
+   225→    setQrData("");
+   226→    setSdkErr(null);
+   227→
+   228→    try {
+   229→      const w = window as unknown as {
+   230→        binancew3w?: { ethereum?: EIP1193Provider };
+   231→        ethereum?: EIP1193Provider & { isBinance?: boolean };
+   232→      };
+   233→
+   234→      // 1) Di dalam dApp browser Binance App → injected provider resmi
+   235→      const injected = w.binancew3w?.ethereum ?? (w.ethereum?.isBinance ? w.ethereum : null);
+   236→      if (injected) {
+   237→        const accs = (await injected.request({ method: "eth_requestAccounts" })) as string[];
+   238→        await handleBinanceAccounts(accs);
+   239→        return;
+   240→      }
+   241→
+   242→      // 2) SDK partner resmi Binance (QR WalletConnect asli via relay Binance)
+   243→      const { getProvider } = await import("@binance/w3w-ethereum-provider");
+   244→      if (binanceCancelled.current || !mounted.current) return;
+   245→
+   246→      if (!providerRef.current) {
+   247→        const p: W3WProvider = getProvider({ chainId: 56, showQrCodeModal: false });
+   248→        providerRef.current = p;
+   249→        registerW3W(p); // agar logout bisa memutus koneksi SDK
+   250→        patchDappMeta(p); // nama dApp "Agentic Miner" di layar approve wallet
+   251→
+   252→        p.on("uri_ready", (uri: string) => {
+   253→          if (binanceCancelled.current || !mounted.current) return;
+   254→          clearUriTimer();
+   255→          setWcUri(uri);
+   256→          renderQr(uri);
+   257→          setSdkStatus("waiting");
+   258→        });
+   259→        p.on("accountsChanged", (accs: string[]) => {
+   260→          if (!binanceCancelled.current && accs?.length) handleBinanceAccounts(accs);
+   261→        });
+   262→        p.on("disconnect", () => {
+   263→          if (mounted.current && !binanceCancelled.current) {
+   264→            enablingRef.current = false;
+   265→            setWcUri("");
+   266→            setQrData("");
+   267→            setSdkStatus("loading");
+   268→          }
+   269→        });
+   270→      }
+   271→
+   272→      const p = providerRef.current;
+   273→
+   274→      // Sudah terhubung sebelumnya (singleton SDK) → langsung masuk
+   275→      if (p.connected && p.accounts?.length) {
+   276→        await handleBinanceAccounts(p.accounts as string[]);
+   277→        return;
+   278→      }
+   279→
+   280→      setSdkStatus("waiting");
+   281→      clearUriTimer();
+   282→      uriTimerRef.current = setTimeout(() => {
+   283→        if (!mounted.current || binanceCancelled.current) return;
+   284→        if (!wcUri && !providerRef.current?.connected) {
+   285→          setSdkStatus("failed");
+   286→          setSdkErr(t("sdkFailed"));
+   287→        }
+   288→      }, SDK_URI_TIMEOUT);
+   289→
+   290→      // Pastikan metadata dApp selalu ter-patch sebelum sesi dibuat (createSession
+   291→      // membaca clientMeta saat enable()).
+   292→      patchDappMeta(p);
+   293→
+   294→      // enable() menunggu persetujuan di Binance App (scan QR / deep link).
+   295→      // Jika sesi pending dari bukaan modal sebelumnya masih berjalan,
+   296→      // jangan panggil enable() dua kali — promise lama tetap memantau.
+   297→      if (!enablingRef.current) {
+   298→        enablingRef.current = true;
+   299→        p.enable()
+   300→          .then((accs: string[]) => {
+   301→            enablingRef.current = false;
+   302→            clearUriTimer();
+   303→            if (!binanceCancelled.current) handleBinanceAccounts(accs);
+   304→          })
+   305→          .catch((err: unknown) => {
+   306→            enablingRef.current = false;
+   307→            clearUriTimer();
+   308→            if (binanceCancelled.current || !mounted.current) return;
+   309→            const msg = err instanceof Error ? err.message : "";
+   310→            setSdkStatus("failed");
+   311→            setSdkErr(/reject|denied/i.test(msg) ? ERR_REJECTED.current : ERR_SDK.current);
+   312→          });
+   313→      }
+   314→    } catch {
+   315→      if (!binanceCancelled.current && mounted.current) {
+   316→        setSdkStatus("failed");
+   317→        setSdkErr(t("sdkFailed"));
+   318→      }
+   319→    }
+   320→  }, [clearUriTimer, handleBinanceAccounts, renderQr, t]);
+   321→
+   322→  /** Tombol "Open Binance sign-in" — deep link resmi dari @binance/w3w-utils */
+   323→  const openBinanceApp = useCallback(async () => {
+   324→    if (!wcUri) return;
+   325→    try {
+   326→      const { openBinanceDeepLink } = await import("@binance/w3w-utils");
+   327→      openBinanceDeepLink(wcUri);
+   328→    } catch {
+   329→      /* noop */
+   330→    }
+   331→  }, [wcUri]);
+   332→
+   333→  // ══════════════════════════════════════════
+   334→  //  METODE 2 — PAIRING LINK SERVER
+   335→  // ══════════════════════════════════════════
+   336→
+   337→  /** Terapkan sesi login dari hasil approve (tanpa membuat user ganda) */
+   338→  const applySession = useCallback(
+   339→    (user: PublicUser) => {
+   340→      saveSession({
+   341→        address: user.walletAddress,
+   342→        walletName: "Binance Agent Wallet",
+   343→        loginAt: Date.now(),
+   344→      });
+   345→      setUser(user);
+   346→      onClose();
+   347→    },
+   348→    [setUser, onClose]
+   349→  );
+   350→
+   351→  /** Approve dari perangkat yang sama (tombol Confirm) — lewat API agar sesi sama */
+   352→  const approveHere = useCallback(async () => {
+   353→    if (!pairCodeRef.current) return;
+   354→    setPhase("confirming");
+   355→    setError(null);
+   356→    try {
+   357→      const res = await fetch("/api/pair/approve", {
+   358→        method: "POST",
+   359→        headers: { "Content-Type": "application/json" },
+   360→        body: JSON.stringify({ code: pairCodeRef.current }),
+   361→      });
+   362→      const d = await res.json();
+   363→      if (!res.ok || !d?.ok) {
+   364→        if (res.status === 410) {
+   365→          setPhase("expired");
+   366→        } else {
+   367→          setError(d?.error ?? t("errLogin"));
+   368→          setPhase("connecting");
+   369→        }
+   370→        return;
+   371→      }
+   372→      await new Promise((r) => setTimeout(r, 1200)); // animasi konfirmasi singkat
+   373→      applySession(d.user);
+   374→    } catch {
+   375→      if (mounted.current) {
+   376→        setError(t("errLogin"));
+   377→        setPhase("connecting");
+   378→      }
+   379→    }
+   380→  }, [applySession, t]);
+   381→
+   382→  const startPolling = useCallback(() => {
+   383→    stopPoll();
+   384→    pollIv.current = setInterval(async () => {
+   385→      if (!pairCodeRef.current) return;
+   386→      try {
+   387→        const res = await fetch(`/api/pair/status?code=${pairCodeRef.current}`);
+   388→        const d = await res.json();
+   389→        if (!mounted.current) return;
+   390→        if (d?.status === "APPROVED" && d?.user) {
+   391→          stopPoll();
+   392→          applySession(d.user);
+   393→        } else if (d?.status === "EXPIRED" || d?.status === "NOT_FOUND") {
+   394→          stopPoll();
+   395→          setPhase("expired");
+   396→        }
+   397→      } catch {
+   398→        /* jaringan sempat gagal → coba di tick berikutnya */
+   399→      }
+   400→    }, POLL_MS);
+   401→  }, [applySession, stopPoll]);
+   402→
+   403→  const regenPair = useCallback(() => {
+   404→    const code = newPairingCode();
+   405→    pairCodeRef.current = code;
+   406→    setPairCode(code);
+   407→    setPairUrl(`${window.location.origin}/pair/${code}`);
+   408→    setSecsLeft(PAIR_TTL);
+   409→    setQrData("");
+   410→    setPhase("connecting");
+   411→    setError(null);
+   412→    // daftarkan sesi ke server (dengan referral bila ada)
+   413→    fetch("/api/pair/create", {
+   414→      method: "POST",
+   415→      headers: { "Content-Type": "application/json" },
+   416→      body: JSON.stringify({ code, refCode: refCode ?? undefined }),
+   417→    })
+   418→      .then(() => {
+   419→        startPolling();
+   420→      })
+   421→      .catch(() => {
+   422→        startPolling(); // tetap polling; approve tanpa create → NOT_FOUND → expired
+   423→      });
+   424→  }, [refCode, startPolling]);
+   425→
+   426→  // ── ganti metode ──
+   427→  // Ref ke fungsi terbaru (identitas stabil) agar effect buka-modal
+   428→  // tidak re-run akibat fungsi baru tiap render (t tidak stabil).
+   429→  const latestRef = useRef({ startBinance, regenPair, stopPoll, clearUriTimer });
+   430→  useEffect(() => {
+   431→    latestRef.current = { startBinance, regenPair, stopPoll, clearUriTimer };
+   432→  });
+   433→
+   434→  const switchMethod = useCallback(
+   435→    (m: Method) => {
+   436→      if (m === method) return;
+   437→      setMethod(m);
+   438→      setError(null);
+   439→      setQrData("");
+   440→      if (m === "pair") {
+   441→        binanceCancelled.current = true; // hentikan alur SDK
+   442→        latestRef.current.clearUriTimer();
+   443→        latestRef.current.regenPair();
+   444→      } else {
+   445→        latestRef.current.stopPoll();
+   446→        latestRef.current.startBinance();
+   447→      }
+   448→    },
+   449→    [method]
+   450→  );
+   451→
+   452→  // Reset tiap kali modal dibuka (HANYA saat `open` berubah)
+   453→  useEffect(() => {
+   454→    if (!open) return;
+   455→    mounted.current = true;
+   456→    setShowBrowser(false);
+   457→    setOptions([]);
+   458→    setCopiedPair(false);
+   459→    setMethod("binance");
+   460→    latestRef.current.startBinance();
+   461→    // deteksi wallet browser secara diam-diam untuk fallback
+   462→    getWalletOptions()
+   463→      .then((opts) => {
+   464→        if (mounted.current) setOptions(opts);
+   465→      })
+   466→      .catch(() => {});
+   467→    return () => {
+   468→      mounted.current = false;
+   469→      binanceCancelled.current = true;
+   470→      latestRef.current.clearUriTimer();
+   471→      latestRef.current.stopPoll();
+   472→    };
+   473→  }, [open]);
+   474→
+   475→  // Countdown 300s → expired (hanya alur pairing server)
+   476→  useEffect(() => {
+   477→    if (!open || method !== "pair" || phase !== "connecting") return;
+   478→    const iv = setInterval(() => {
+   479→      setSecsLeft((s) => {
+   480→        if (s <= 1) {
+   481→          clearInterval(iv);
+   482→          stopPoll();
+   483→          if (mounted.current) setPhase("expired");
+   484→          return 0;
+   485→        }
+   486→        return s - 1;
+   487→      });
+   488→    }, 1000);
+   489→    return () => clearInterval(iv);
+   490→  }, [open, method, phase, pairCode, stopPoll]);
+   491→
+   492→  // QR alur pairing (URL /pair/{code})
+   493→  useEffect(() => {
+   494→    if (!open || method !== "pair" || !pairUrl) return;
+   495→    renderQr(pairUrl);
+   496→  }, [open, method, pairUrl, renderQr]);
+   497→
+   498→  const handleBrowserWallet = useCallback(
+   499→    async (opt: WalletOption) => {
+   500→      if (!opt.provider) return;
+   501→      setConnecting(opt.id);
+   502→      setError(null);
+   503→      try {
+   504→        const address = await connectProvider(opt.provider);
+   505→        if (!isValidEvmAddress(address)) throw new Error("invalid address");
+   506→        // ── GATE AGENTIC ID: wajib holder NFT SPACE ID Agent ID ──
+   507→        const probe = await probeAgentId(address.toLowerCase());
+   508→        if (mounted.current && !probe.hasNft) {
+   509→          throw Object.assign(new Error(t("agentIdRequired")), { gated: true });
+   510→        }
+   511→        const res = await api.login(address.toLowerCase(), refCode ?? undefined);
+   512→        saveSession({ address: res.user.walletAddress, walletName: opt.name, loginAt: Date.now() });
+   513→        setUser(res.user);
+   514→        onClose();
+   515→      } catch (err) {
+   516→        const e = err as Error & { gated?: boolean };
+   517→        if (mounted.current && e?.gated) {
+   518→          setError(e.message);
+   519→        } else {
+   520→          const msg =
+   521→            err instanceof Error
+   522→              ? err.message.includes("user rejected") || err.message.includes("denied")
+   523→                ? t("errUserRejected")
+   524→                : err.message
+   525→              : t("errConnect");
+   526→          setError(msg);
+   527→        }
+   528→      } finally {
+   529→        if (mounted.current) setConnecting(null);
+   530→      }
+   531→    },
+   532→    [refCode, setUser, onClose, t]
+   533→  );
+   534→
+   535→  const copyPair = async () => {
+   536→    try {
+   537→      await navigator.clipboard.writeText(pairCode);
+   538→      setCopiedPair(true);
+   539→      setTimeout(() => setCopiedPair(false), 1500);
+   540→    } catch {
+   541→      /* ignore */
+   542→    }
+   543→  };
+   544→
+   545→  const mmss = `${String(Math.floor(secsLeft / 60)).padStart(2, "0")}:${String(secsLeft % 60).padStart(2, "0")}`;
+   546→
+   547→  // status badge global
+   548→  const busy =
+   549→    (method === "binance" && (sdkStatus === "approving" || (sdkStatus === "waiting" && phase === "confirming"))) ||
+   550→    (method === "pair" && phase === "confirming");
+   551→  const expired = (method === "binance" && sdkStatus === "failed") || (method === "pair" && phase === "expired");
+   552→
+   553→  return (
+   554→    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+   555→      <DialogContent className="max-w-md rounded-2xl border-[#2B3139] bg-[#181A20] text-[#EAECEF] p-0 gap-0 overflow-hidden">
+   556→        <DialogHeader className="flex flex-row items-center justify-between border-b border-[#2B3139] px-5 py-4">
+   557→          <DialogTitle className="flex items-center gap-2 text-base font-bold">
+   558→            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#F0B90B] text-[#0B0E11]">
+   559→              <Wallet className="h-4.5 w-4.5" />
+   560→            </span>
+   561→            {t("agentWalletTitle")}
+   562→          </DialogTitle>
+   563→          {/* Status badge */}
+   564→          <span
+   565→            className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+   566→              busy
+   567→                ? "bg-[#20B26C]/15 text-[#20B26C]"
+   568→                : expired
+   569→                  ? "bg-[#F6465D]/15 text-[#F6465D]"
+   570→                  : "bg-[#F0B90B]/15 text-[#F0B90B]"
+   571→            }`}
+   572→          >
+   573→            {busy ? (
+   574→              <>
+   575→                <span className="relative flex h-2 w-2">
+   576→                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#20B26C] opacity-75" />
+   577→                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[#20B26C]" />
+   578→                </span>
+   579→                {t("connected")}
+   580→              </>
+   581→            ) : expired ? (
+   582→              <>
+   583→                <AlertTriangle className="h-3 w-3" />
+   584→                {t("expiredBadge")}
+   585→              </>
+   586→            ) : (
+   587→              <>
+   588→                <span className="relative flex h-2 w-2">
+   589→                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#F0B90B] opacity-75" />
+   590→                  <span className="relative inline-flex h-2 w-2 rounded-full bg-[#F0B90B]" />
+   591→                </span>
+   592→                {t("connectStatus")}
+   593→              </>
+   594→            )}
+   595→          </span>
+   596→        </DialogHeader>
+   597→
+   598→        {/* ── Pemilih metode ── */}
+   599→        <div className="px-5 pt-4">
+   600→          <div className="grid grid-cols-2 gap-1 rounded-xl bg-[#0B0E11] p-1">
+   601→            <button
+   602→              onClick={() => switchMethod("binance")}
+   603→              className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-bold transition-colors ${
+   604→                method === "binance"
+   605→                  ? "bg-[#F0B90B] text-[#0B0E11]"
+   606→                  : "text-[#848E9C] hover:text-[#EAECEF]"
+   607→              }`}
+   608→            >
+   609→              <Smartphone className="h-3.5 w-3.5" />
+   610→              {t("methodBinance")}
+   611→            </button>
+   612→            <button
+   613→              onClick={() => switchMethod("pair")}
+   614→              className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-bold transition-colors ${
+   615→                method === "pair" ? "bg-[#F0B90B] text-[#0B0E11]" : "text-[#848E9C] hover:text-[#EAECEF]"
+   616→              }`}
+   617→            >
+   618→              <ExternalLink className="h-3.5 w-3.5" />
+   619→              {t("methodPair")}
+   620→            </button>
+   621→          </div>
+   622→        </div>
+   623→
+   624→        <div className="max-h-[68vh] overflow-y-auto px-5 py-5">
+   625→          {/* Banner syarat masuk: wajib holder NFT Agentic ID */}
+   626→          <div className="mb-4 flex items-start gap-2 rounded-xl border border-[#F0B90B]/35 bg-gradient-to-r from-[#F0B90B]/10 to-transparent p-3">
+   627→            <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#F0B90B]" />
+   628→            <p className="text-[11px] leading-relaxed text-[#EAECEF]">
+   629→              {t("agentIdGate")}
+   630→              <a
+   631→                href="https://bscscan.com/token/0x60b9262456de011f7d15a54cdd8c48baaa8b022f"
+   632→                target="_blank"
+   633→                rel="noreferrer"
+   634→                className="ml-1 font-mono text-[10px] text-[#F0B90B] underline underline-offset-2"
+   635→              >
+   636→                0x60B9...022F
+   637→              </a>
+   638→            </p>
+   639→          </div>
+   640→          {method === "binance" ? (
+   641→            /* ════════ METODE 1: SDK RESMI BINANCE ════════ */
+   642→            <>
+   643→              <p className="text-center text-[13px] leading-relaxed text-[#848E9C]">{t("binanceQrHint")}</p>
+   644→
+   645→              <div className="mt-4 flex flex-col items-center">
+   646→                <div className="relative rounded-2xl bg-gradient-to-br from-[#F8D33A]/60 via-[#F0B90B]/30 to-[#A855F7]/30 p-[3px] shadow-[0_10px_40px_-10px_rgba(240,185,11,0.35)]">
+   647→                  <div className="rounded-2xl bg-white p-3">
+   648→                    {sdkStatus === "failed" ? (
+   649→                      <button
+   650→                        onClick={startBinance}
+   651→                        className="flex h-44 w-44 flex-col items-center justify-center gap-2 rounded-xl bg-[#FFF6DE]"
+   652→                      >
+   653→                        <RefreshCw className="h-6 w-6 text-[#F0B90B]" />
+   654→                        <span className="text-xs font-semibold text-[#0B0E11]">{t("retry")}</span>
+   655→                      </button>
+   656→                    ) : qrData ? (
+   657→                      <img src={qrData} alt="Binance sign-in QR" className="h-44 w-44" />
+   658→                    ) : (
+   659→                      <div className="flex h-44 w-44 flex-col items-center justify-center gap-2">
+   660→                        <Loader2 className="h-6 w-6 animate-spin text-[#F0B90B]" />
+   661→                        <span className="px-3 text-center text-[10px] leading-snug text-[#848E9C]">
+   662→                          {t("sdkWaiting")}
+   663→                        </span>
+   664→                      </div>
+   665→                    )}
+   666→                  </div>
+   667→                </div>
+   668→
+   669→                {/* Deep link resmi Binance */}
+   670→                <button
+   671→                  onClick={openBinanceApp}
+   672→                  disabled={!wcUri}
+   673→                  className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#F8D33A] to-[#F0B90B] text-sm font-extrabold text-[#0B0E11] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+   674→                >
+   675→                  <Smartphone className="h-4 w-4" />
+   676→                  {t("openBinance")}
+   677→                </button>
+   678→
+   679→                {/* Status verifikasi Agentic ID saat menyetujui */}
+   680→                {sdkStatus === "approving" && (
+   681→                  <p className="mt-3 flex items-center gap-1.5 text-[11px] font-semibold text-[#20B26C]">
+   682→                    <BadgeCheck className="h-3.5 w-3.5" /> {t("agentIdChecking")}
+   683→                  </p>
+   684→                )}
+   685→
+   686→                <p className="mt-3 max-w-xs text-center text-[11px] leading-relaxed text-[#848E9C]">
+   687→                  {t("agentIdNote")}
+   688→                </p>
+   689→
+   690→                <div className="mt-4 flex items-center gap-1.5 rounded-full border border-[#2B3139] bg-[#0B0E11] px-3 py-1.5">
+   691→                  <BadgeCheck className="h-3.5 w-3.5 text-[#20B26C]" />
+   692→                  <span className="text-[10px] font-medium text-[#848E9C]">{t("poweredBySdk")}</span>
+   693→                </div>
+   694→
+   695→                {/* Penjelasan wallet aktif & Agentic Wallet */}
+   696→                <div className="mt-3 w-full space-y-2">
+   697→                  <div className="flex items-start gap-2 rounded-xl border border-[#F0B90B]/25 bg-[#F0B90B]/5 p-3">
+   698→                    <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#F0B90B]" />
+   699→                    <p className="text-[11px] leading-relaxed text-[#B7BDC6]">{t("walletActiveHint")}</p>
+   700→                  </div>
+   701→                  <div className="flex items-start gap-2 rounded-xl border border-[#2B3139] bg-[#0B0E11] p-3">
+   702→                    <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#848E9C]" />
+   703→                    <p className="text-[11px] leading-relaxed text-[#848E9C]">{t("agenticNote")}</p>
+   704→                  </div>
+   705→                </div>
+   706→              </div>
+   707→
+   708→              {sdkErr && sdkStatus === "failed" && (
+   709→                <div className="mt-3 rounded-xl border border-[#F6465D]/40 bg-[#F6465D]/10 p-3 text-xs text-[#F6465D]">
+   710→                  {sdkErr}
+   711→                </div>
+   712→              )}
+   713→            </>
+   714→          ) : (
+   715→            /* ════════ METODE 2: PAIRING LINK SERVER ════════ */
+   716→            <>
+   717→              <p className="text-center text-[13px] leading-relaxed text-[#848E9C]">{t("qrSubtitle")}</p>
+   718→
+   719→              <div className="mt-4 flex flex-col items-center">
+   720→                <div className="relative rounded-2xl bg-gradient-to-br from-[#F8D33A]/60 via-[#F0B90B]/30 to-[#A855F7]/30 p-[3px] shadow-[0_10px_40px_-10px_rgba(240,185,11,0.35)]">
+   721→                  <div className="rounded-2xl bg-white p-3">
+   722→                    {qrData ? (
+   723→                      <img
+   724→                        src={qrData}
+   725→                        alt="Agent Wallet pairing QR"
+   726→                        className={`h-44 w-44 transition-opacity ${phase === "expired" ? "opacity-20" : ""}`}
+   727→                      />
+   728→                    ) : (
+   729→                      <div className="flex h-44 w-44 items-center justify-center">
+   730→                        <Loader2 className="h-6 w-6 animate-spin text-[#F0B90B]" />
+   731→                      </div>
+   732→                    )}
+   733→                  </div>
+   734→                  {phase === "expired" && (
+   735→                    <button
+   736→                      onClick={regenPair}
+   737→                      className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-2xl bg-[#0B0E11]/80"
+   738→                    >
+   739→                      <RefreshCw className="h-6 w-6 text-[#F0B90B]" />
+   740→                      <span className="text-xs font-semibold text-[#EAECEF]">{t("refreshCode")}</span>
+   741→                    </button>
+   742→                  )}
+   743→                </div>
+   744→
+   745→                {/* Pairing code */}
+   746→                <div className="mt-4 flex items-center gap-2">
+   747→                  <span className="text-xs text-[#848E9C]">{t("pairingCode")}</span>
+   748→                  <button
+   749→                    onClick={copyPair}
+   750→                    className="flex items-center gap-1.5 rounded-lg border border-[#F0B90B]/40 bg-[#F0B90B]/10 px-3 py-1 font-mono text-sm font-bold tracking-[0.3em] text-[#F0B90B] transition-colors hover:bg-[#F0B90B]/20"
+   751→                    aria-label="Salin pairing code"
+   752→                  >
+   753→                    {pairCode}
+   754→                    {copiedPair ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5 opacity-60" />}
+   755→                  </button>
+   756→                  <button
+   757→                    onClick={regenPair}
+   758→                    className="rounded-lg p-1.5 text-[#848E9C] transition-colors hover:bg-[#1E2329] hover:text-[#EAECEF]"
+   759→                    aria-label="Refresh pairing code"
+   760→                  >
+   761→                    <RefreshCw className="h-4 w-4" />
+   762→                  </button>
+   763→                </div>
+   764→
+   765→                <p className="mt-3 max-w-xs text-center text-[11px] leading-relaxed text-[#848E9C]">
+   766→                  {t("scanHint")}
+   767→                </p>
+   768→              </div>
+   769→
+   770→              {/* Buka halaman pairing (jadi juga untuk "scan" di perangkat yang sama) */}
+   771→              <a
+   772→                href={pairUrl}
+   773→                target="_blank"
+   774→                rel="noreferrer"
+   775→                className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#F0B90B]/40 bg-[#F0B90B]/10 text-sm font-bold text-[#F0B90B] transition-colors hover:bg-[#F0B90B]/20"
+   776→              >
+   777→                <ExternalLink className="h-4 w-4" />
+   778→                {t("openPairing")}
+   779→              </a>
+   780→
+   781→              {/* Status menunggu */}
+   782→              <div className="mt-4 flex items-center justify-between rounded-xl border border-[#2B3139] bg-[#0B0E11] px-4 py-3">
+   783→                <span className="flex items-center gap-2 text-xs text-[#848E9C]">
+   784→                  <Loader2 className="h-3.5 w-3.5 animate-spin text-[#F0B90B]" />
+   785→                  {phase === "expired" ? t("codeExpired") : t("waitingConfirm")}
+   786→                </span>
+   787→                <span
+   788→                  className={`font-mono text-xs tabular-nums ${phase === "expired" ? "text-[#F6465D]" : "text-[#EAECEF]"}`}
+   789→                >
+   790→                  {phase === "expired" ? "00:00" : mmss}
+   791→                </span>
+   792→              </div>
+   793→
+   794→              {error && (
+   795→                <div className="mt-3 rounded-xl border border-[#F6465D]/40 bg-[#F6465D]/10 p-3 text-xs text-[#F6465D]">
+   796→                  {error}
+   797→                </div>
+   798→              )}
+   799→
+   800→              {/* Tombol aksi */}
+   801→              <div className="mt-4 grid grid-cols-2 gap-2">
+   802→                <Button
+   803→                  variant="ghost"
+   804→                  onClick={onClose}
+   805→                  className="h-11 rounded-xl border border-[#2B3139] text-sm text-[#848E9C] hover:bg-[#1E2329] hover:text-[#EAECEF]"
+   806→                >
+   807→                  {t("cancelConnect")}
+   808→                </Button>
+   809→                <Button
+   810→                  onClick={approveHere}
+   811→                  disabled={phase === "expired"}
+   812→                  className="h-11 rounded-xl bg-gradient-to-r from-[#F8D33A] to-[#F0B90B] text-sm font-extrabold text-[#0B0E11] hover:opacity-90 disabled:opacity-40"
+   813→                >
+   814→                  <ShieldCheck className="mr-1.5 h-4 w-4" />
+   815→                  {t("simulateConfirm")}
+   816→                </Button>
+   817→              </div>
+   818→            </>
+   819→          )}
+   820→
+   821→          {/* Fallback: wallet browser (kedua metode) */}
+   822→          <button
+   823→            onClick={() => setShowBrowser((v) => !v)}
+   824→            className="mt-4 flex w-full items-center justify-center gap-1.5 text-xs text-[#848E9C] transition-colors hover:text-[#EAECEF]"
+   825→          >
+   826→            <Keyboard className="h-3.5 w-3.5" />
+   827→            {t("useBrowserWallet")}
+   828→            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showBrowser ? "rotate-180" : ""}`} />
+   829→          </button>
+   830→
+   831→          {showBrowser && (
+   832→            <div className="mt-3 space-y-2">
+   833→              {options.length === 0 && (
+   834→                <p className="rounded-xl border border-dashed border-[#2B3139] p-3 text-center text-xs text-[#848E9C]">
+   835→                  {t("noWallet")}
+   836→                </p>
+   837→              )}
+   838→              {options.map((opt) => (
+   839→                <button
+   840→                  key={opt.id}
+   841→                  onClick={() => handleBrowserWallet(opt)}
+   842→                  disabled={connecting !== null}
+   843→                  className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-colors disabled:opacity-60 ${
+   844→                    opt.isBinance
+   845→                      ? "border-[#F0B90B]/50 bg-[#F0B90B]/10 hover:bg-[#F0B90B]/15"
+   846→                      : "border-[#2B3139] bg-[#0B0E11] hover:bg-[#1E2329]"
+   847→                  }`}
+   848→                >
+   849→                  {opt.icon ? (
+   850→                    <img src={opt.icon} alt={opt.name} className="h-8 w-8 rounded-lg" />
+   851→                  ) : (
+   852→                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#1E2329] text-[#848E9C]">
+   853→                      <Wallet className="h-4 w-4" />
+   854→                    </span>
+   855→                  )}
+   856→                  <div className="min-w-0 flex-1">
+   857→                    <p className="text-sm font-semibold">{opt.name}</p>
+   858→                    <p className="truncate text-[11px] text-[#848E9C]">
+   859→                      {opt.isBinance ? "Agentic Wallet • BNB Chain" : t("walletDetected")}
+   860→                    </p>
+   861→                  </div>
+   862→                  {connecting === opt.id ? (
+   863→                    <Loader2 className="h-4 w-4 animate-spin text-[#F0B90B]" />
+   864→                  ) : (
+   865→                    <ShieldCheck className="h-4 w-4 text-[#20B26C]" />
+   866→                  )}
+   867→                </button>
+   868→              ))}
+   869→            </div>
+   870→          )}
+   871→        </div>
+   872→
+   873→        <div className="border-t border-[#2B3139] px-5 py-3 text-[10px] leading-relaxed text-[#848E9C]">
+   874→          {t("qrFooter")}
+   875→        </div>
+   876→      </DialogContent>
+   877→    </Dialog>
+   878→  );
+   879→}
+   880→

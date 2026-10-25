@@ -261,3 +261,27 @@ Stage Summary:
 - Semua jalur masuk (SDK QR, wallet browser, pairing link) di-gate NFT SPACE ID Agent ID 0x60B9...022F; tanpa NFT ditolak di client & server.
 - ptah.trade memakai akses partner resmi Binance Agent Wallet (uni-qr) yang belum terbuka publik — dijelaskan di UI; kita tetap pakai QR WalletConnect resmi via relay Binance.
 - Catatan push: commit lokal "feat: Agentic Miner dApp metadata + Agentic ID NFT gate..." tersimpan; git push GAGAL (kredensial GitHub tidak tersedia di environment: "could not read Username"). Push ulang perlu token GitHub (gh auth login / remote dengan token).
+
+---
+Task ID: 9
+Agent: Z.ai (main agent)
+Task: "Hapus semua berkas Binance App dan Pairing Link dan Sign in with Binance Agentic Wallet, kita buat ulang" + tambahkan "Sign in to my Agentic Wallet" ala ptah.trade via skill binance-agentic-wallet (baw CLI) + gate NFT Agentic ID + logout wajib sign ulang + perbaikan tampilan terpotong.
+
+Work Log:
+- Skill binance-agentic-wallet dimuat; CLI `baw` (@binance/agentic-wallet) diinstall global (v1.12.0, preflight OK).
+- RISET KUNCI — jawaban "kenapa ptah.trade bisa sign": `baw auth signin --json` mengembalikan PERSIS pola ptah.trade: urlForWeb `https://app.binance.com/uni-qr/XXXX` (sama dgn contoh user BWBKMtRZ), pairingCode 6-hex, qrCodeId, expireAt (~5 menit). Backend ptah.trade menjalankan CLI/SDK Agentic Wallet resmi ini di server-nya (screenshot user: request dari Linux amzn2, IP AWS Ashburn 3.231.166.244; login berlaku s/d 2026-10-28; Agent ID everhand.ai).
+- src/lib/agentic-wallet.ts (server-only): async spawn `baw` (runBaw) — startAgenticSignIn (auth signin + background `auth verify --qrCodeId` 6 menit, sesi global in-memory; sign-in baru menggantikan QR lama), fetchAgenticWalletInfo (wallet status→address, prioritas BSC/56; agentId dari settings bila ada), pollAgenticSignIn (WAITING/SUCCESS/NFT_REQUIRED/EXPIRED + gate + registerUser), agenticSignOut (`auth signout`), penanganan ALREADY_CONNECTED (login instan tanpa QR bila sesi server masih hidup).
+- API baru: POST /api/agentic/start (refCode diteruskan), GET /api/agentic/poll?qrCodeId, POST /api/agentic/signout. Teruji: start → uni-qr nyata + pairing code; poll → WAITING 299s; QR lama → EXPIRED; signout → ok:true.
+- DIHAPUS (permintaan user): /api/pair/{create,approve,status}, /pair/[code]/page.tsx, model PairSession (prisma db push --accept-data-loss), deps @binance/w3w-ethereum-provider + @binance/w3w-utils (bun remove), registerW3W/disconnectW3W di wallet.ts, src/lib/polyfill-buffer.ts, scripts/check-pair.ts.
+- wallet-connect-modal.tsx DIBUAT ULANG (ala ptah.trade, screenshot user): header ikon wallet + "Agent Wallet" + badge (Not connected/Connecting/Connected), subtitle "Connect Binance Agent Wallet to see your assets and review transactions here.", banner gate NFT (link bscscan 0x60B9...022F), tombol emas "Sign in to my Agentic Wallet", kartu QR uni-qr + pairing code (copy) + "Open Binance sign-in" (urlForWeb verbatim, target _blank) + "Waiting for confirmation · Ns" + "Cancel connection", overlay expired + refresh, divider "or" + link "Use a regular wallet" (EIP-6963: connect → probeAgentId → tolak bila bukan holder → api.login), NFT_REQUIRED/403 → pesan agentIdRequired + alamat.
+- store.logout: clearSession + POST /api/agentic/signout (`baw auth signout`) → login berikutnya WAJIB scan/sign ulang (sesuai permintaan).
+- i18n zh/en: blok key modal diganti total (patch script scripts/patch-i18n.mjs); signInWallet = "Sign in to my Agentic Wallet"/"登录我的 Agentic Wallet"; key lama (method*, sdk*, demo*, walletActiveHint, agenticNote, openPairing, simulateConfirm, connectTitle, dll) dihapus.
+- Layout: main pb → pb-[calc(9.5rem+env(safe-area-inset-bottom,0px))] md:pb-44 (chip Power/Streak tidak lagi tertutup nav bawah — akar keluhan "terpenggal" di screenshot user), layout.tsx viewportFit:"cover" + metadataBase, DialogContent aria-describedby (hapus warning), tombol × ganda dihapus (pakai close bawaan Dialog).
+- Gate NFT terverifikasi: auth/login wallet acak → 403 agent_id_required; whitelist 0x9e4002...c688 → 200 (TurboWolf80). Agentic flow: NFT_REQUIRED bila on-chain yakin bukan holder; bila semua RPC gagal, sesi Agentic Wallet dihitung bukti (wallet Agentic = terikat Agent ID).
+- E2E agent-browser: mobile 412 (login → modal idle → QR nyata + pairing + countdown; regular wallet toggle + noWallet msg; chips Power/Streak penuh terlihat; logout → login screen; overflowX=false), desktop 1440 (login, modal QR tercenter, cancel → idle). tsc + eslint bersih.
+
+Stage Summary:
+- Website kini punya tombol "Sign in to my Agentic Wallet" yang menjalankan protokol ASLI Binance Agentic Wallet di server (sama seperti ptah.trade): QR uni-qr resmi + pairing code + konfirmasi di Binance App → sesi Agentic Wallet tersambung → gate NFT → masuk game.
+- Logout menjalankan `baw auth signout` → sign-in berikutnya wajib QR baru (tidak ada sesi basi).
+- Semua jalur masuk di-gate NFT Agentic ID; wallet tanpa NFT ditolak di client & server.
+- Catatan produksi: `baw` CLI harus terinstall di host produksi (npm i -g @binance/agentic-wallet) & PATH/Home tersedia; CLI menyimpan SATU sesi global per server — untuk multi-user paralel penuh dibutuhkan akses partner resmi Binance (seperti ptah.trade).
