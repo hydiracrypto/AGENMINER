@@ -28,6 +28,7 @@ import {
   ExternalLink,
   Smartphone,
   BadgeCheck,
+  Info,
 } from "lucide-react";
 import {
   connectProvider,
@@ -609,6 +610,18 @@ export default function WalletConnectModal({ open, onClose, refCode }: Props) {
                 <div className="mt-4 flex items-center gap-1.5 rounded-full border border-[#2B3139] bg-[#0B0E11] px-3 py-1.5">
                   <BadgeCheck className="h-3.5 w-3.5 text-[#20B26C]" />
                   <span className="text-[10px] font-medium text-[#848E9C]">{t("poweredBySdk")}</span>
+                </div>
+
+                {/* Penjelasan wallet aktif & Agentic Wallet */}
+                <div className="mt-3 w-full space-y-2">
+                  <div className="flex items-start gap-2 rounded-xl border border-[#F0B90B]/25 bg-[#F0B90B]/5 p-3">
+                    <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#F0B90B]" />
+                    <p className="text-[11px] leading-relaxed text-[#B7BDC6]">{t("walletActiveHint")}</p>
+                  </div>
+                  <div className="flex items-start gap-2 rounded-xl border border-[#2B3139] bg-[#0B0E11] p-3">
+                    <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#848E9C]" />
+                    <p className="text-[11px] leading-relaxed text-[#848E9C]">{t("agenticNote")}</p>
+                  </div>
                 </div>
               </div>
 
