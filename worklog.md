@@ -285,3 +285,25 @@ Stage Summary:
 - Logout menjalankan `baw auth signout` → sign-in berikutnya wajib QR baru (tidak ada sesi basi).
 - Semua jalur masuk di-gate NFT Agentic ID; wallet tanpa NFT ditolak di client & server.
 - Catatan produksi: `baw` CLI harus terinstall di host produksi (npm i -g @binance/agentic-wallet) & PATH/Home tersedia; CLI menyimpan SATU sesi global per server — untuk multi-user paralel penuh dibutuhkan akses partner resmi Binance (seperti ptah.trade).
+
+---
+Task ID: 10
+Agent: Z.ai (main agent)
+Task: "Hapus semua wallet atau username agent yang terhubung dan maupun whitelist dan hapus text seperti di gambar Entry requirement... Dan ubah text seperti ini By scanning, you agree that mining rewards are recorded as game balance; withdrawals are auto-minted as BEP-20 tokens to your BNB Chain wallet, with the fee added to PancakeSwap liquidity by agentic miner"
+
+Work Log:
+- WIPE DATA: scripts/wipe-users.ts — 9 user (wallet + Agent ID username: TitanScout76, DiamondByte22, AstroAgent97, TitanPulse43, ZenRanger43, ZenNode23, OmegaStorm38, MetaRanger34, TurboWolf80) + 7 mineLog + 3 withdrawal + 2 liquidityLog DIHAPUS semua; DB mulai dari nol (leaderboard/mine stats 0).
+- HAPUS SESI TERHUBUNG: ~/.baw/session.json dihapus + `baw auth signout` → server tidak punya wallet agentic tersambung; modal kembali "未连接/Not connected".
+- HAPUS WHITELIST & GATE NFT TOTAL: AGENTIC_ID (contract/rpcs/whitelist) dihapus dari game-config.ts; file src/lib/agent-id.ts + src/app/api/agent-id/route.ts DIHAPUS; probeAgentId/AgentIdProbe dihapus dari wallet.ts; gate 403 agent_id_required dihapus dari auth/login; agentic-wallet.ts tanpa checkAgentId (StartResult/AgenticPollResult tanpa nft_required/NFT_REQUIRED, SUCCESS = {user,address}); /api/agentic/start tanpa 403; kini SEMUA wallet boleh masuk (client & server).
+- HAPUS TEKS: banner "Entry requirement: your wallet must hold the Agentic ID NFT...denied entry" (agentIdGate/agentIdGateEnd) + pesan agentIdRequired DIHAPUS dari modal & i18n (zh/en); ShieldCheck + AGENTIC_ID_SHORT dihapus dari modal.
+- TEKS BARU footer modal (qrFooter): EN persis "By scanning, you agree that mining rewards are recorded as game balance; withdrawals are auto-minted as BEP-20 tokens to your BNB Chain wallet, with the fee added to PancakeSwap liquidity by agentic miner"; ZH "扫码即表示你同意：挖矿奖励以游戏余额形式记录，提现时自动铸造为 BEP-20 代币到你的 BNB Chain 钱包，手续费由 Agentic Miner 注入 PancakeSwap 流动性。" — disclaimer "demo game / tidak berafiliasi Binance" DIHAPUS dari footer.
+- agentIdNote diperbarui tanpa klaim verifikasi NFT: zh "登录后自动生成你的专属游戏 Agent ID，作为用户名和邀请码" / en "After sign-in, your unique in-game Agent ID is generated automatically — it becomes your username and invite code".
+- FIX aksesibilitas: judul modal kini <DialogTitle> (hapus console error Radix "DialogContent requires DialogTitle" — badge Issue dev tools = 0).
+- .next cache lama membersulam tsc (validator.ts mereferensikan route terhapus) → dev server direstart via .zscripts/dev.sh + rm -rf .next → tsc bersih.
+- Verifikasi: POST /api/auth/login wallet acak → 200 + user baru (dulu 403); modal zh/en tanpa teks gate (eval innerText 不含 "进入条件"/"Agentic ID NFT" = true); sign-in → QR uni-qr ASLI + pairing code (8a9518) + "Waiting for confirmation · 297s" + tombol Open Binance sign-in; footer baru tampil zh/en; desktop 1440 tanpa overflow; lint + tsc bersih.
+- Screenshot bukti: download/v10-modal-en-clean.png, v10-modal-en-final.png, v10-qr-connecting-en.png, v10-modal-zh-final.png, v10-desktop-1440.png.
+
+Stage Summary:
+- Semua wallet/username agent terhapus dari DB (fresh start), sesi server dibersihkan, whitelist & seluruh gate NFT Agentic ID dihapus — sign in terbuka untuk semua wallet.
+- Teks "Entry requirement...denied entry" hilang total; footer modal kini persis teks persetujuan yang diminta user (EN verbatim + padanan ZH).
+- Login Agentic Wallet tetap berfungsi penuh (QR uni-qr asli + pairing code + poll + auto-register Agent ID username).

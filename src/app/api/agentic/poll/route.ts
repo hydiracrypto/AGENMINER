@@ -1,7 +1,6 @@
 // GET /api/agentic/poll?qrCodeId=... — polling status sign-in Agentic Wallet
 // WAITING → masih menunggu konfirmasi di Binance App
-// SUCCESS → user terverifikasi (gate NFT Agentic ID lolos) + akun game siap
-// NFT_REQUIRED → wallet bukan holder NFT Agentic ID → ditolak masuk
+// SUCCESS → user terverifikasi + akun game siap (tanpa gate NFT)
 // EXPIRED → kode kedaluwarsa / digantikan sign-in baru
 import { NextRequest, NextResponse } from "next/server";
 import { pollAgenticSignIn } from "@/lib/agentic-wallet";

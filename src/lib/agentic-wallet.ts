@@ -13,7 +13,6 @@
 
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
-import { checkAgentId } from "./agent-id";
 import { registerUser } from "./create-user";
 import { toPublicUser } from "./user-utils";
 import type { PublicUser } from "./types";
@@ -133,14 +132,13 @@ export function clearAgenticSession() {
 export type StartResult =
   | { kind: "session"; session: AgenticSession }
   | { kind: "already"; user: PublicUser; address: string }
-  | { kind: "nft_required"; address: string; message: string }
   | { kind: "error"; message: string };
 
 /**
  * Mulai sesi sign-in baru:
  * - jalankan `baw auth signin --json`
  * - bila CLI balas ALREADY_CONNECTED (sesi server masih hidup) → langsung
- *   ambil alamat + gate NFT + register → masuk tanpa QR
+ *   ambil alamat + register → masuk tanpa QR
  * - spawn `baw auth verify --qrCodeId X --json` di background (blocking, bisa 5 menit)
  * - simpan sesi global (sign-in baru menggantikan yang lama)
  */
@@ -154,10 +152,6 @@ export async function startAgenticSignIn(refCode: string | null): Promise<StartR
   if (String(signin.data.status ?? "") === "ALREADY_CONNECTED") {
     const info = await fetchAgenticWalletInfo();
     if (!info.address) return { kind: "error", message: "connected session returned no address" };
-    const gate = await checkAgentId(info.address);
-    if (gate.trusted && !gate.ok) {
-      return { kind: "nft_required", address: info.address, message: "Agentic ID NFT required" };
-    }
     const user = await registerUser(info.address, refCode);
     return { kind: "already", user: toPublicUser(user), address: info.address };
   }
@@ -261,13 +255,12 @@ export async function fetchAgenticWalletInfo(): Promise<AgenticWalletInfo> {
   return { address, agentId };
 }
 
-// ---------- 3) finalize: verify → address → gate NFT → register ----------
+// ---------- 3) finalize: verify → address → register ----------
 
 export type AgenticPollResult =
   | { status: "WAITING"; secondsLeft: number }
   | { status: "EXPIRED" }
-  | { status: "SUCCESS"; user: PublicUser; address: string; hasNft: boolean; gateSource: string }
-  | { status: "NFT_REQUIRED"; address: string; message: string };
+  | { status: "SUCCESS"; user: PublicUser; address: string };
 
 export async function pollAgenticSignIn(qrCodeId: string): Promise<AgenticPollResult> {
   const session = getAgenticSession();
@@ -294,28 +287,11 @@ export async function pollAgenticSignIn(qrCodeId: string): Promise<AgenticPollRe
   if (!info.address) return { status: "EXPIRED" };
   const address = info.address;
 
-  // ── GATE NFT AGENTIC ID ──
-  // Sesinya adalah Agentic Wallet Binance ASLI → pemiliknya terbukti memiliki
-  // Agentic Wallet yang terikat Agent ID (.ai). Tetap cek on-chain untuk catatan;
-  // bila semua RPC gagal, sesi Agentic Wallet sendiri dihitung bukti cukup.
-  const gate = await checkAgentId(address);
-  if (gate.trusted && !gate.ok) {
-    return {
-      status: "NFT_REQUIRED",
-      address,
-      message:
-        "This wallet does not hold the Agentic ID NFT (SPACE ID Agent ID on BNB Chain mainnet). Entry is denied.",
-    };
-  }
-  const gateSource = gate.ok ? "onchain" : "agentic_session";
-
   const user = await registerUser(address, session.refCode);
   return {
     status: "SUCCESS",
     user: toPublicUser(user),
     address,
-    hasNft: gate.ok || gate.trusted === false,
-    gateSource,
   };
 }
 

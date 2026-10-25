@@ -5,16 +5,17 @@
 // METODE UTAMA: "Sign in to my Agentic Wallet"
 //   Server menjalankan CLI resmi Binance `baw` (@binance/agentic-wallet):
 //   POST /api/agentic/start → QR ASLI https://app.binance.com/uni-qr/XXX + pairing code
-//   GET  /api/agentic/poll  → WAITING / SUCCESS (gate NFT Agentic ID) / NFT_REQUIRED / EXPIRED
+//   GET  /api/agentic/poll  → WAITING / SUCCESS / EXPIRED
 //   User scan QR dengan Binance App → "Masuk ke Agentic Wallet" → konfirmasi pairing code
 //   → sesi Agentic Wallet tersambung ke server → login game.
-// METODE KEDUA: "Use a regular wallet" — wallet browser via EIP-6963 (tetap di-gate NFT).
+// METODE KEDUA: "Use a regular wallet" — wallet browser via EIP-6963.
 // LOGOUT → POST /api/agentic/signout (`baw auth signout`) → login berikutnya WAJIB sign ulang.
+// Terbuka untuk semua wallet — tanpa gate NFT / whitelist.
 // ============================================
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
   Loader2,
@@ -26,19 +27,16 @@ import {
   ExternalLink,
   Info,
   X,
-  ShieldCheck,
 } from "lucide-react";
 import {
   connectProvider,
   getWalletOptions,
   saveSession,
-  probeAgentId,
   type WalletOption,
 } from "@/lib/wallet";
 import { api } from "@/lib/api-client";
 import { useGameStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
-import { AGENTIC_ID } from "@/lib/game-config";
 import type { PublicUser } from "@/lib/types";
 
 type View = "idle" | "starting" | "connecting";
@@ -134,18 +132,12 @@ export default function WalletConnectModal({
         const d = (await res.json()) as
           | { status: "WAITING"; secondsLeft: number }
           | { status: "EXPIRED" }
-          | { status: "SUCCESS"; user: PublicUser; address: string }
-          | { status: "NFT_REQUIRED"; address: string; message: string };
+          | { status: "SUCCESS"; user: PublicUser; address: string };
         if (!alive) return;
         if (d.status === "WAITING") {
           setSecondsLeft((prev) => (d.secondsLeft > 0 ? d.secondsLeft : prev));
         } else if (d.status === "SUCCESS") {
           finishLogin(d.user, d.address);
-        } else if (d.status === "NFT_REQUIRED") {
-          stopPoll();
-          setErr({ msg: tRef.current("agentIdRequired"), address: d.address });
-          setView("idle");
-          setBadge("notConnected");
         } else {
           stopPoll();
           setExpired(true);
@@ -231,16 +223,9 @@ export default function WalletConnectModal({
       });
       const d = (await res.json()) as
         | (StartData & { alreadyConnected?: boolean; user?: PublicUser; address?: string })
-        | { error: string; errorKey?: string };
+        | { error: string };
       if (!res.ok || "error" in d) {
-        // Sesuapun penyebabnya — bila server menolak karena bukan holder NFT →
-        // tampilkan pesan penolakan Agentic ID, bukan error generik.
-        if ("errorKey" in d && d.errorKey === "agent_id_required") {
-          const addr = "address" in d ? (d as { address?: string }).address : undefined;
-          setErr({ msg: tRef.current("agentIdRequired"), address: addr });
-        } else {
-          setErr({ msg: tRef.current("sdkFailed") });
-        }
+        setErr({ msg: tRef.current("sdkFailed") });
         setView("idle");
         setBadge("notConnected");
         return;
@@ -277,7 +262,7 @@ export default function WalletConnectModal({
     }
   }, [wallets.length]);
 
-  // ── Regular wallet: connect + gate NFT + login ──
+  // ── Regular wallet: connect + login ──
   const handleWalletPick = useCallback(
     async (opt: WalletOption) => {
       if (!opt.provider) return;
@@ -285,22 +270,12 @@ export default function WalletConnectModal({
       setErr(null);
       try {
         const address = await connectProvider(opt.provider);
-        const probe = await probeAgentId(address);
-        if (probe.trusted && !probe.hasNft) {
-          // TANPA NFT Agentic ID → tolak masuk
-          setErr({ msg: tRef.current("agentIdRequired"), address });
-          return;
-        }
         setBadge("connecting");
         try {
           const r = await api.login(address, refCodeRef.current ?? undefined);
           finishLogin(r.user, address);
-        } catch (e) {
-          const errKey = (e as { errorKey?: string }).errorKey;
-          setErr({
-            msg: errKey === "agent_id_required" ? tRef.current("agentIdRequired") : tRef.current("errLogin"),
-            address,
-          });
+        } catch {
+          setErr({ msg: tRef.current("errLogin"), address });
         }
       } catch (e) {
         const msg = (e as Error)?.message ?? "";
@@ -335,7 +310,7 @@ export default function WalletConnectModal({
             <Wallet className="h-5 w-5 text-[#F0B90B]" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold text-[#EAECEF]">{t("agentWalletTitle")}</p>
+            <DialogTitle className="truncate text-sm font-bold text-[#EAECEF]">{t("agentWalletTitle")}</DialogTitle>
             <p className="text-[11px] text-[#848E9C]">Binance Agentic Wallet</p>
           </div>
           <span
@@ -353,24 +328,7 @@ export default function WalletConnectModal({
         </div>
 
         <div className="max-h-[80vh] space-y-4 overflow-y-auto px-5 py-5">
-          {/* ── Banner gate NFT Agentic ID ── */}
-          <div className="flex items-start gap-2 rounded-xl border border-[#F0B90B]/25 bg-[#F0B90B]/5 p-3">
-            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#F0B90B]" />
-            <p className="text-[11px] leading-relaxed text-[#B7BDC6]">
-              {t("agentIdGate")}
-              <a
-                href={AGENTIC_ID.explorer}
-                target="_blank"
-                rel="noreferrer"
-                className="mx-1 font-mono text-[#F0B90B] underline"
-              >
-                {AGENTIC_ID_SHORT}
-              </a>
-              {t("agentIdGateEnd")}
-            </p>
-          </div>
-
-          {/* ── Pesan error / penolakan NFT ── */}
+          {/* ── Pesan error ── */}
           {err && (
             <div className="flex items-start gap-2 rounded-xl border border-[#F6465D]/30 bg-[#F6465D]/10 p-3">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#F6465D]" />
@@ -558,5 +516,3 @@ export default function WalletConnectModal({
     </Dialog>
   );
 }
-
-const AGENTIC_ID_SHORT = "0x60B9...022F";

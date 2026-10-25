@@ -1,6 +1,7 @@
 // POST /api/agentic/start — mulai sign-in Binance Agentic Wallet (pola ptah.trade)
 // Server menjalankan `baw auth signin` resmi → QR uni-qr + pairing code ASLI.
 // Bila sesi server masih hidup (ALREADY_CONNECTED) → langsung login tanpa QR.
+// Terbuka untuk semua wallet (tanpa gate NFT / whitelist).
 import { NextRequest, NextResponse } from "next/server";
 import { startAgenticSignIn } from "@/lib/agentic-wallet";
 
@@ -15,16 +16,6 @@ export async function POST(req: NextRequest) {
 
     if (r.kind === "error") {
       return NextResponse.json({ error: r.message }, { status: 502 });
-    }
-    if (r.kind === "nft_required") {
-      return NextResponse.json(
-        {
-          error: r.message,
-          errorKey: "agent_id_required",
-          address: r.address,
-        },
-        { status: 403 }
-      );
     }
     if (r.kind === "already") {
       return NextResponse.json({ alreadyConnected: true, user: r.user, address: r.address });

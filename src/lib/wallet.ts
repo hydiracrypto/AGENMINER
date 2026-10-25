@@ -197,22 +197,3 @@ export function clearSession() {
     /* ignore */
   }
 }
-
-// ---------- Agentic ID NFT pre-check (CLIENT) ----------
-// Server tetap memverifikasi ulang di /api/auth/login (sumber kebenaran).
-export interface AgentIdProbe {
-  hasNft: boolean;
-  balance: number;
-  trusted: boolean;
-}
-
-export async function probeAgentId(address: string): Promise<AgentIdProbe> {
-  try {
-    const res = await fetch(`/api/agent-id?address=${address.toLowerCase()}`);
-    if (!res.ok) return { hasNft: false, balance: 0, trusted: false };
-    const d = (await res.json()) as { hasNft?: boolean; balance?: number; trusted?: boolean };
-    return { hasNft: Boolean(d.hasNft), balance: Number(d.balance ?? 0), trusted: Boolean(d.trusted) };
-  } catch {
-    return { hasNft: false, balance: 0, trusted: false };
-  }
-}
