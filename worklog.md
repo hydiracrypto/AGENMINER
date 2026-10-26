@@ -734,3 +734,18 @@ Stage Summary:
 - Tombol Copy Code dihapus, Share full-width — sesuai permintaan owner.
 - CATATAN ARSITEKTUR: production DB = file db/custom.db yang ter-commit; setiap re-publish me-reset data production sesuai isi file di repo. Data yang tercipta di production runtime TIDAK mengalir balik ke git. Jangan pernah commit DB yang baru di-reset/wipe; bila ingin reset manual, lakukan via db:reset lalu pastikan file ter-commit adalah kondisi yang diinginkan.
 - Saldo/riwayat production owner (1.093 mined, dsb.) telah hilang oleh commit d3a1b43 dan tidak dapat dipulihkan — akun baru mulai dari 0 (otomatis dibuat ulang saat owner membuka situs).
+
+---
+Task ID: 31
+Agent: Z.ai (main agent)
+Task: Kembalikan tampilan tombol Copy Code di kartu Share (owner melapor tampilan tersebut hilang dan ingin dikembalikan).
+
+Work Log:
+- Owner mengirim screenshot (18:11) menunjukkan tombol "Copy Code: EVERHAND" yang dihilangkan pada Task 30, dan meminta tampilan itu kembali.
+- friends-tab.tsx: pulihkan tombol Copy Code berdampingan dengan Share (flex gap-2, keduanya flex-1) persis seperti layout Task 29 — termasuk state `copied: "code" | "link" | null`, feedback centang hijau, dan label `copyCode` i18n.
+- Semua perbaikan Task 30 TETAP dipertahankan: 404 → tim kosong, pesan refLoadFail + tombol Retry, auto re-register saat boot.
+- TSC OK, build sukses. Commit b5eaf95 + push main.
+
+Stage Summary:
+- Kartu Share kini: baris link (dgn ikon salin) + [Copy Code: EVERHAND.AI] [Share] berdampingan + menu sosmed (X/Telegram/WhatsApp/Facebook).
+- Owner perlu klik Publish lagi di chat.z.ai agar perubahan tampil di production.
