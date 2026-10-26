@@ -184,29 +184,19 @@ export default function FriendsTab() {
               {copied === "link" ? <Check className="h-4 w-4 text-[#20B26C]" /> : <Copy className="h-4 w-4" />}
             </button>
           </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={() => copy(user.refCode, "code")}
-              variant="outline"
-              className="flex-1 h-11 rounded-xl border-[#2B3139] bg-[#0B0E11] text-xs font-bold hover:bg-[#1E2329] whitespace-nowrap truncate px-2"
-            >
-              {copied === "code" ? <Check className="mr-1.5 h-4 w-4 text-[#20B26C]" /> : <Copy className="mr-1.5 h-4 w-4" />}
-              {copied === "code" ? t("copied") : t("copyCode", { code: user.refCode })}
-            </Button>
-            <Button
-              onClick={() => {
-                // Perangkat dgn Web Share API -> share sheet OS; selain itu -> menu sosmed
-                if (typeof navigator !== "undefined" && "share" in navigator) {
-                  void share();
-                } else {
-                  setShareOpen((v) => !v);
-                }
-              }}
-              className="flex-1 h-11 rounded-xl bg-gradient-to-r from-[#F8D33A] to-[#F0B90B] font-bold text-[#0B0E11] hover:opacity-90"
-            >
-              <Share2 className="mr-1.5 h-4 w-4" /> {t("share")}
-            </Button>
-          </div>
+          <Button
+            onClick={() => {
+              // Perangkat dgn Web Share API -> share sheet OS; selain itu -> menu sosmed
+              if (typeof navigator !== "undefined" && "share" in navigator) {
+                void share();
+              } else {
+                setShareOpen((v) => !v);
+              }
+            }}
+            className="w-full h-11 rounded-xl bg-gradient-to-r from-[#F8D33A] to-[#F0B90B] font-bold text-[#0B0E11] hover:opacity-90"
+          >
+            <Share2 className="mr-1.5 h-4 w-4" /> {t("share")}
+          </Button>
 
           {/* Menu share sosmed — X, Telegram, WhatsApp, Facebook (+ native share) */}
           {shareOpen && (
