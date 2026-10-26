@@ -22,6 +22,10 @@ import type { PublicUser } from "./types";
 function resolveBawBin(): string {
   const candidates = [
     process.env.BAW_BIN,
+    // 1) Project-local (persisten via package.json — survive env reset/restart)
+    "/home/z/my-project/node_modules/.bin/baw",
+    // 2) CWD-relative (kalau project dipindah)
+    `${process.cwd()}/node_modules/.bin/baw`,
     "/home/z/.npm-global/bin/baw",
     "/usr/local/bin/baw",
     "/usr/bin/baw",
@@ -30,7 +34,10 @@ function resolveBawBin(): string {
   return "baw";
 }
 
-const BAW = resolveBawBin();
+/** Lazy resolution setiap pemanggilan (existsSync sangat murah) — survive install ulang saat server jalan */
+function bawBin(): string {
+  return resolveBawBin();
+}
 
 interface BawJson {
   success: boolean;
@@ -51,7 +58,7 @@ function runBaw(args: string[], timeoutMs = 30_000): Promise<BawJson> {
       }
     };
     try {
-      const child = spawn(BAW, args, {
+      const child = spawn(bawBin(), args, {
         env: { ...process.env, HOME: process.env.HOME ?? "/home/z" },
         stdio: ["ignore", "pipe", "pipe"],
       });
@@ -199,7 +206,7 @@ export async function startAgenticSignIn(refCode: string | null): Promise<StartR
   let verifyChild: ReturnType<typeof spawn> | null = null;
   const verify = new Promise<{ ok: boolean; message?: string }>((resolve) => {
     try {
-      const child = spawn(BAW, ["auth", "verify", "--qrCodeId", qrCodeId, "--json"], {
+      const child = spawn(bawBin(), ["auth", "verify", "--qrCodeId", qrCodeId, "--json"], {
         env: { ...process.env, HOME: process.env.HOME ?? "/home/z" },
         stdio: ["ignore", "pipe", "pipe"],
       });

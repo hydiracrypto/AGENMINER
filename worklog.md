@@ -365,3 +365,24 @@ Work Log:
 Stage Summary:
 - Klien kini kebal proxy tulis-ulang header (parse JSON tanpa peduli content-type), 5× retry selang-seling POST/GET, timeout 20s, dan pesan error jujur (offline vs halaman lama vs jaringan) + tombol retry.
 - Trafik HP user terbukti SAMPAI server & flow QR berjalan (polling live) — masalah "Couldn't reach the Binance network" kini tertangani di semua lapisan; bila gateway bermasalah lagi, user melihat pesan spesifik (cek internet / muat ulang halaman), bukan pesan menyesatkan.
+
+---
+Task ID: 13
+Agent: main (Z.ai)
+Task: Fix "Couldn't reach the Binance network — please retry" — user still can't sign-in, QR not appearing (reported via mobile screenshot from enminer.space-z.ai)
+
+Work Log:
+- Diagnosed dev.log: EVERY user request (mobile UA) returned `POST /api/agentic/start 502` with `ERROR: spawn baw ENOENT`
+- Root cause: sandbox environment was reset between sessions — global npm package `@binance/agentic-wallet` was WIPED (only mmdc/playwright remained in /home/z/.npm-global/bin), so `resolveBawBin()` fell back to bare `"baw"` which doesn't exist in the Next server process PATH
+- Fix 1: `bun add @binance/agentic-wallet` — installed LOCALLY in project (persisted in package.json; dev.sh `bun install` re-installs it on every restart → survives env resets)
+- Fix 2: `src/lib/agentic-wallet.ts` — `resolveBawBin()` now checks project-local `/home/z/my-project/node_modules/.bin/baw` and CWD-relative path FIRST; replaced module-load-time `const BAW` with lazy `bawBin()` function (re-resolves on every spawn via cheap existsSync → survives reinstall while server runs)
+- Restarted dev server (pkill + rm -rf .next + bunx prisma generate manually after dev.sh hung on prisma generate; started via `setsid nohup bun run dev`)
+- E2E verification: POST /api/agentic/start → 200 in ~1.1s with full payload (qrCodeId ac3b9640, urlForWeb app.binance.com/uni-qr/3RLNBQ7F, pairingCode a30ebb, secondsLeft 299, qrDataUrl data:image/png 9878 chars); second call → same qrCodeId (reuse=yes, stable ptah.trade-style QR); poll WAITING+countdown / bogus id EXPIRED
+- Browser E2E: EN mode → sign-in button → modal "Connecting" → QR img 200x200 (alt="Binance Agentic Wallet sign-in QR") + PAIRING CODE a30ebb + "Waiting for confirmation · 209s" countdown + "Open Binance sign-in" link + Task-10 footer text; hasError:false; Cancel → "Not connected" → re-sign-in → same QR same pairing (reuse confirmed)
+- Cleanup: baw auth signout, killed baw processes, browser closed
+
+Stage Summary:
+- ROOT CAUSE: env reset wiped globally-installed @binance/agentic-wallet → spawn ENOENT → 502 → client showed sdkFailed red error
+- FIX: local project dependency + lazy multi-path binary resolution (node_modules/.bin/baw first)
+- All endpoints healthy; QR displays instantly server-side rendered; session reuse works
+- Screenshots: download/v13-qr-fixed-en.png, download/v13-qr-fixed-reuse.png
