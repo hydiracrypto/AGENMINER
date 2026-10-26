@@ -34,7 +34,8 @@ export async function GET(req: NextRequest) {
 
     const rows = await db.user.findMany({
       where: { referredById: user.id },
-      orderBy: { createdAt: "desc" },
+      // Terbaru dulu; id sebagai tiebreaker agar urutan stabil bila createdAt seri
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       skip: (page - 1) * limit,
       take: limit,
       select: {

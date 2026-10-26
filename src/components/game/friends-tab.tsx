@@ -15,6 +15,7 @@ import {
   Send,
   MessageCircle,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { GAME, TOKEN, fmtNum } from "@/lib/game-config";
@@ -33,36 +34,42 @@ export default function FriendsTab() {
   const [refData, setRefData] = useState<ReferralsResult | null>(null);
   const [refPage, setRefPage] = useState(1);
   const [refLoading, setRefLoading] = useState(false);
-  const [refError, setRefError] = useState<string | null>(null);
 
-  const shareLink =
-    typeof window !== "undefined" && user ? `${window.location.origin}/?ref=${user.refCode}` : "";
-
-  const loadReferrals = useCallback(
-    async (address: string, page: number) => {
-      setRefLoading(true);
-      setRefError(null);
+  const loadReferrals = useCallback(async (address: string, page: number) => {
+    setRefLoading(true);
+    // 3 percobaan dgn jeda — tahan gangguan proxy/jaringan (GET di api-client
+    // tidak di-retry otomatis). Gagal terus → data lama dipertahankan; tanpa
+    // data → tampil sebagai tim kosong. Pola sama dgn menu Top 100 Miners:
+    // tanpa kotak error merah, cukup tombol Refresh (ikon berputar).
+    const waits = [0, 600, 1500];
+    for (let i = 0; i < waits.length; i++) {
+      if (waits[i]) await new Promise((r) => setTimeout(r, waits[i]));
       try {
         const data = await api.referrals(address, page);
         setRefData(data);
         setRefPage(data.page);
+        setRefLoading(false);
+        return;
       } catch (e) {
-        // 404 = akun belum terdaftar di server (mis. DB production di-reset saat
-        // publish) → perlakukan sebagai tim kosong, BUKAN error.
         const status = (e as { status?: number } | null)?.status;
+        // 404 = akun belum ada di server (mis. DB production di-reset saat
+        // publish) → perlakukan sebagai tim kosong, BUKAN error
         if (status === 404) {
           setRefData({ items: [], total: 0, page: 1, totalPages: 1, limit: 20 });
           setRefPage(1);
-        } else {
-          // Error lain → pesan jujur + tombol coba lagi (bukan "Mining failed")
-          setRefError(t("refLoadFail"));
+          setRefLoading(false);
+          return;
         }
-      } finally {
-        setRefLoading(false);
+        // 4xx lain = error API sah → tidak layak di-retry
+        if (status && status >= 400 && status < 500 && status !== 429) break;
       }
-    },
-    [t]
-  );
+    }
+    setRefData((prev) => prev ?? { items: [], total: 0, page: 1, totalPages: 1, limit: 20 });
+    setRefLoading(false);
+  }, []);
+
+  const shareLink =
+    typeof window !== "undefined" && user ? `${window.location.origin}/?ref=${user.refCode}` : "";
 
   useEffect(() => {
     if (!user) return;
@@ -243,24 +250,22 @@ export default function FriendsTab() {
           <h3 className="text-sm font-bold flex items-center gap-1.5">
             <Users className="h-4 w-4 text-[#F0B90B]" /> {t("refListTitle")}
           </h3>
-          {refData && (
-            <span className="rounded-full bg-[#F0B90B]/10 border border-[#F0B90B]/30 px-2.5 py-0.5 text-[10px] font-extrabold text-[#F0B90B] tabular-nums">
-              {fmtNum(refData.total, 0, lang)}
-            </span>
-          )}
-        </div>
-
-        {refError && (
-          <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-[#F6465D]/40 bg-[#F6465D]/10 p-3">
-            <span className="text-xs text-[#F6465D]">{refError}</span>
+          <div className="flex items-center gap-2.5">
+            {refData && (
+              <span className="rounded-full bg-[#F0B90B]/10 border border-[#F0B90B]/30 px-2.5 py-0.5 text-[10px] font-extrabold text-[#F0B90B] tabular-nums">
+                {fmtNum(refData.total, 0, lang)}
+              </span>
+            )}
+            {/* Refresh gaya menu Top 100 Miners — ikon berputar saat memuat */}
             <button
               onClick={() => void loadReferrals(user.walletAddress, refPage)}
-              className="shrink-0 rounded-lg border border-[#F6465D]/50 px-2.5 py-1.5 text-[11px] font-bold text-[#F6465D] transition-colors hover:bg-[#F6465D]/15"
+              className="flex items-center gap-1 text-xs text-[#848E9C] transition-colors hover:text-[#F0B90B]"
+              aria-label="Refresh"
             >
-              {t("retry")}
+              <RefreshCw className={`h-3.5 w-3.5 ${refLoading ? "animate-spin" : ""}`} /> {t("refresh")}
             </button>
           </div>
-        )}
+        </div>
 
         {refLoading && !refData && (
           <div className="flex items-center justify-center gap-2 py-8 text-xs text-[#848E9C]">
