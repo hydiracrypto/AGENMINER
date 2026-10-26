@@ -30,6 +30,8 @@ export default function BoostTab() {
       const e = err as Error & { errorKey?: string };
       if (e.errorKey === "insufficient_upgrade") {
         setFeedback({ type: "err", msg: t("errInsufficient", { n: fmtNum(upgradeCost(user.miningPower), 0, lang), sym: TOKEN.symbol }) });
+      } else if (e.errorKey === "max_level") {
+        setFeedback({ type: "err", msg: t("errMaxLevel") });
       } else if (e.errorKey === "already_checkin") {
         setFeedback({ type: "err", msg: t("errAlreadyCheckin") });
       } else {
@@ -65,7 +67,8 @@ export default function BoostTab() {
 
   if (!user) return null;
 
-  const canAfford = user.balance >= cost;
+  const atMaxLevel = user.miningPower >= GAME.maxMiningPower;
+  const canAfford = !atMaxLevel && user.balance >= cost;
   const tokenomics = [
     { label: t("tmPool"), value: TOKEN.miningPool, pct: 70, color: "#F0B90B" },
     { label: t("tmTeam"), value: TOKEN.teamTreasury, pct: 10, color: "#A855F7" },
@@ -106,6 +109,19 @@ export default function BoostTab() {
           </div>
         </div>
 
+        {atMaxLevel ? (
+          <div className="mt-4 space-y-2">
+            <div className="flex items-center justify-between rounded-xl bg-[#0B0E11] border border-[#F0B90B]/50 px-4 py-3">
+              <div className="text-xs text-[#848E9C]">
+                x{GAME.maxMiningPower} MAX
+              </div>
+              <span className="rounded-full bg-[#F0B90B]/15 border border-[#F0B90B]/40 px-3 py-1 text-[10px] font-extrabold text-[#F0B90B]">
+                {t("maxLevelBadge")}
+              </span>
+            </div>
+            <p className="text-[11px] text-[#848E9C]">{t("maxLevelNote")}</p>
+          </div>
+        ) : (
         <div className="mt-4 flex items-center justify-between rounded-xl bg-[#0B0E11] border border-[#2B3139] px-4 py-3">
           <div className="text-xs text-[#848E9C]">
             {t("upgradeTo", { n: user.miningPower + 1 })}
@@ -120,7 +136,8 @@ export default function BoostTab() {
             {t("upgrade")}
           </Button>
         </div>
-        {!canAfford && (
+        )}
+        {!atMaxLevel && !canAfford && (
           <p className="mt-2 text-[11px] text-[#848E9C]">
             {t("needMoreUpgrade", { n: fmtNum(cost - user.balance, 0, lang), sym: TOKEN.symbol })}
           </p>

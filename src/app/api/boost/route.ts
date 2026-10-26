@@ -23,6 +23,12 @@ export async function POST(req: NextRequest) {
 
     // ── UPGRADE: tingkatkan mining power dengan membakar AGENMINER ──
     if (action === "upgrade") {
+      if (user.miningPower >= GAME.maxMiningPower) {
+        return NextResponse.json(
+          { error: `Max level reached (Lv.${GAME.maxMiningPower}).`, errorKey: "max_level" },
+          { status: 400 }
+        );
+      }
       const cost = upgradeCost(user.miningPower);
       if (user.balance < cost) {
         return NextResponse.json(

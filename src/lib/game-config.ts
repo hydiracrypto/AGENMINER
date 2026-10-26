@@ -63,6 +63,10 @@ export function splitWithdrawal(amount: number): { net: number; fee: number } {
 //   pool terjamin terbagi ke 7.000–10.000 wallet holder.
 // - Wallet TANPA Agent ID Binance asli (verifiedAgent=false):
 //   cooldown 5 menit + reward 50% → perolehan lebih lambat & adil.
+// - Mining Power Lv 1–10 (hard cap) + kurva biaya eksponensial 1,65x
+//   per level → token terbakar di upgrade TIDAK bisa ditarik, jadi
+//   wallet pemburu level tinggi otomatis menyerahkan hampir semua
+//   jatahnya (Lv6 = 99% cap terbakar; Lv7+ matematis mustahil).
 // ============================================
 export const GAME = {
   cooldownMs: 60_000, // jeda antar mining (wallet dgn Agent ID): 60 detik
@@ -80,6 +84,7 @@ export const GAME = {
   perWalletCap: 7_000, // cap lifetime reward per wallet (semua sumber reward)
   noAgentIdCooldownMs: 300_000, // wallet TANPA Agent ID: cooldown 5 menit
   noAgentIdRewardMult: 0.5, // wallet TANPA Agent ID: reward 50%
+  maxMiningPower: 10, // Mining Power Lv 1–10 — di atas itu tidak bisa upgrade
 } as const;
 
 /** Cooldown efektif per wallet: 60 dtk (verified Agent ID) / 5 mnt (tanpa) */
@@ -97,9 +102,17 @@ export function clampToCap(totalMined: number, amount: number): number {
   return Math.max(0, Math.min(amount, remainingCap(totalMined)));
 }
 
-/** Biaya upgrade mining power ke level berikutnya */
+/**
+ * Biaya upgrade Mining Power ke level berikutnya (Lv 1–10, hard cap).
+ * Kurva eksponensial 1,65x per level — JAUH lebih sulit dari kurva lama
+ * (750 x p^1.6). Token yang dibakar di upgrade tidak bisa ditarik, jadi
+ * dengan cap lifetime 7.000/wallet:
+ *   Lv5 kumulatif 3.946 (56% cap terbakar) • Lv6 kumulatif 6.911 (99%,
+ *   level trofi — sisa withdraw cuma ~89) • Lv7 kumulatif 11.803 →
+ *   matematis mustahil dicapai.
+ */
 export function upgradeCost(currentPower: number): number {
-  return Math.round(750 * Math.pow(currentPower, 1.6));
+  return Math.round(400 * Math.pow(1.65, currentPower - 1));
 }
 
 /** Multiplier streak berdasarkan hari beruntun */
