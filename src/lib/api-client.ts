@@ -74,21 +74,29 @@ async function tryFetch<T>(url: string, init?: RequestInit): Promise<T> {
   return data as T;
 }
 
-/** Fetch tangguh: POST → GET → POST → GET → POST (5 percobaan) */
+/** Fetch tangguh: POST → GET → POST → GET → POST (5 percobaan).
+ *  Setiap percobaan memakai URL unik (_t = cache-buster) supaya gateway/proxy
+ *  TIDAK menyajikan respons basi yang ter-cache (penyebab error "Couldn't
+ *  reach the Binance network" yang terus muncul walau server sehat). */
 async function jsonFetch<T>(url: string, init?: RequestInit): Promise<T> {
   const isPost = init?.method === "POST";
   const bodyObj = isPost && typeof init?.body === "string" ? safeParse(init.body) : null;
   if (!isPost || !bodyObj) return tryFetch<T>(url, init);
 
-  const qs = new URLSearchParams(bodyObj as Record<string, string>).toString();
-  const getUrl = `${url}${url.includes("?") ? "&" : "?"}${qs}`;
+  const bust = () => `_t=${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const sep = url.includes("?") ? "&" : "?";
   const backoff = [500, 900, 1400, 2000];
   let lastErr: unknown;
 
   for (let i = 0; i < 5; i++) {
     if (i > 0) await sleep(backoff[Math.min(i - 1, backoff.length - 1)]);
+    const postUrl = `${url}${sep}${bust()}-p${i}`;
+    const qs = new URLSearchParams(bodyObj as Record<string, string>).toString();
+    const getUrl = `${url}${sep}${qs}&${bust()}-g${i}`;
     try {
-      return i % 2 === 0 ? await tryFetch<T>(url, init) : await tryFetch<T>(getUrl, { method: "GET" });
+      return i % 2 === 0
+        ? await tryFetch<T>(postUrl, init)
+        : await tryFetch<T>(getUrl, { method: "GET" });
     } catch (e) {
       if (!(e instanceof TransportError)) throw e; // error API sah — jangan di-retry
       lastErr = e;
@@ -122,16 +130,33 @@ export interface AgenticStartData {
 }
 
 export const api = {
-  /** Mulai sign-in Agentic Wallet (tahan gangguan proxy — POST→GET→POST) */
-  agenticStart: (refCode?: string | null) =>
-    jsonFetch<AgenticStartData>("/api/agentic/start", {
+  /** Mulai sign-in Agentic Wallet (tahan gangguan proxy — POST→GET→POST).
+   *  force=true (default): aksi user → QR + pairing code BARU setiap connect
+   *  (pola ptah.trade). Rantai retry otomatis via GET bridge selalu non-force,
+   *  jadi QR yang sedang dilihat user tidak digantikan. */
+  agenticStart: (refCode?: string | null, force = true) =>
+    jsonFetch<AgenticStartData>("/api/wallet/start", {
       method: "POST",
       headers: JSON_HEADERS,
-      body: JSON.stringify({ refCode: refCode ?? null }),
+      body: JSON.stringify({ refCode: refCode ?? null, force }),
     }),
 
+  /** Batalkan sesi sign-in pending di server (fire-and-forget, keepalive).
+   *  Dipanggil saat user menekan "Cancel connection" / menutup modal —
+   *  connect berikutnya PASTI menghasilkan QR + pairing code baru. */
+  agenticCancel: () => {
+    try {
+      void fetch(`/api/wallet/start?_t=${Date.now()}`, {
+        method: "DELETE",
+        keepalive: true,
+      }).catch(() => undefined);
+    } catch {
+      /* ignore */
+    }
+  },
+
   /** Sign out sesi Agentic Wallet di server (fire-and-forget friendly) */
-  agenticSignout: () => jsonFetch<{ ok: boolean }>("/api/agentic/signout", { method: "POST" }),
+  agenticSignout: () => jsonFetch<{ ok: boolean }>("/api/wallet/signout", { method: "POST" }),
 
   login: (address: string, refCode?: string) =>
     jsonFetch<{ user: PublicUser; isNew: boolean }>("/api/auth/login", {

@@ -166,18 +166,35 @@ export type StartResult =
  * - spawn `baw auth verify --qrCodeId X --json` di background (blocking, bisa 5 menit)
  * - simpan sesi global (sign-in baru menggantikan yang lama)
  */
-export async function startAgenticSignIn(refCode: string | null): Promise<StartResult> {
-  // ── STABILITAS QR (pola ptah.trade) ──
-  // Bila sesi sign-in masih pending & belum kedaluwarsa → PAKAI SESI YANG SAMA.
-  // Retry klien (POST→GET→POST), klik ulang, atau request paralel TIDAK membuat
-  // QR baru — QR yang sedang dilihat user tidak pernah dibatalkan mendadak.
-  const cur = getAgenticSession();
-  if (cur && isVerifyPending(cur)) {
-    return { kind: "session", session: cur, reused: true };
+export async function startAgenticSignIn(
+  refCode: string | null,
+  opts?: { force?: boolean }
+): Promise<StartResult> {
+  // ── FORCE (aksi user: klik sign-in / Retry / refresh code / setelah cancel) ──
+  // Pola ptah.trade: setiap connect baru dari user = QR + pairing code BARU.
+  if (opts?.force) {
+    clearAgenticSession();
+    // CLI `auth signin` mengembalikan QR PENDING yang SAMA selama masih berlaku
+    // (terbukti empiris) — agar pairing benar-benar berubah, sesi pending CLI
+    // harus dibersihkan dulu. TAPI jangan pernah signout sesi yang masih
+    // CONNECTED (kalau connected, signin di bawah langsung balas
+    // ALREADY_CONNECTED → login instan tanpa QR).
+    const st = await runBaw(["wallet", "status", "--json"], 8_000);
+    if (st.success && String(st.data?.status ?? "") === "UNCONNECTED") {
+      await runBaw(["auth", "signout", "--json"], 8_000);
+    }
+  } else {
+    // ── NON-FORCE (retry OTOMATIS klien: POST→GET→POST) ──
+    // Bila sesi sign-in masih pending & belum kedaluwarsa → PAKAI SESI YANG SAMA,
+    // supaya rantai retry tidak menghancurkan QR yang sedang dilihat user.
+    const cur = getAgenticSession();
+    if (cur && isVerifyPending(cur)) {
+      return { kind: "session", session: cur, reused: true };
+    }
   }
 
-  // Sesi lama sudah mati/kedaluwarsa → bersihkan (bunuh verify child lama)
-  if (cur) clearAgenticSession();
+  // Sesi in-memory lama (jika masih ada sisa) → bersihkan (bunuh verify child lama)
+  clearAgenticSession();
 
   const signin = await runBaw(["auth", "signin", "--json"], 30_000);
   if (!signin.success || !signin.data) {

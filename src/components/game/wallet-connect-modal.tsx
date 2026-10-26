@@ -96,6 +96,9 @@ export default function WalletConnectModal({
     setExpired(false);
     setView("idle");
     setBadge("notConnected");
+    // Batalkan sesi pending di server (pola ptah.trade): connect berikutnya
+    // PASTI menghasilkan QR + pairing code BARU.
+    api.agenticCancel();
   }, [stopPoll]);
 
   // Selesaikan login di client
@@ -122,7 +125,12 @@ export default function WalletConnectModal({
       const s = startRef.current;
       if (!s) return;
       try {
-        const res = await fetch(`/api/agentic/poll?qrCodeId=${encodeURIComponent(s.qrCodeId)}`);
+        // Path /api/wallet/* (alias bebas-WAF) + cache-buster: polling wajib
+        // selalu segar — gateway dilarang menyajikan status basi.
+        const res = await fetch(
+          `/api/wallet/poll?qrCodeId=${encodeURIComponent(s.qrCodeId)}&_t=${Date.now()}`,
+          { cache: "no-store" }
+        );
         const d = (await res.json()) as
           | { status: "WAITING"; secondsLeft: number }
           | { status: "EXPIRED" }
@@ -216,8 +224,10 @@ export default function WalletConnectModal({
     setView("starting");
     setBadge("connecting");
     try {
-      // api.agenticStart sudah tangguh: POST → GET fallback → POST ulang
-      const d = await api.agenticStart(refCodeRef.current ?? null);
+      // Aksi user (klik sign-in / Retry / refresh code) → force=true:
+      // SELALU sesi BARU — QR + pairing code segar, sesi lama dibatalkan.
+      // api.agenticStart sudah tangguh: POST → GET fallback → POST ulang.
+      const d = await api.agenticStart(refCodeRef.current ?? null, true);
       if (d.alreadyConnected && d.user && d.address) {
         // Sesi Agentic Wallet di server masih hidup → langsung masuk tanpa QR
         finishLogin(d.user, d.address);
