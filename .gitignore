@@ -52,8 +52,11 @@ prompt
 server.log
 # Skills directory
 /skills/
-# Vendored Binance Agentic Wallet CLI (deployment-safe, spawn dinamis)
-!vendor/agentic-wallet
-!vendor/agentic-wallet/**
-!vendor/agentic-wallet/node_modules
-!vendor/agentic-wallet/node_modules/**
+# Vendored Binance Agentic Wallet CLI (self-contained, deployment-safe)
+!vendor
+!vendor/package.json
+!vendor/bun.lock
+!vendor/node_modules
+!vendor/node_modules/**
+!vendor/node_modules/**/node_modules
+!vendor/node_modules/**/node_modules/**

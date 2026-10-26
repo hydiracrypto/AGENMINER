@@ -45,15 +45,19 @@ function resolveBawLaunch(): BawLaunch {
   // 1) Kandidat file JS entry CLI — dijalankan via process.execPath
   //    (node/bun yang menjalankan server; CLI = JS murni + deps nested)
   const jsCandidates = [
-    // Vendor dalam repo (cwd project root / dev)
-    `${process.cwd()}/vendor/agentic-wallet/dist/index.js`,
-    // cwd standalone build (.next/standalone) → project root satu level di atas
-    `${process.cwd()}/../vendor/agentic-wallet/dist/index.js`,
+    // Vendor SELF-CONTAINED dalam repo (bun install --production di vendor/) —
+    // ikut ter-commit & ter-deploy; cwd project root / standalone ber-tracing
+    `${process.cwd()}/vendor/node_modules/@binance/agentic-wallet/dist/index.js`,
+    // cwd standalone build (.next/standalone) → project root DUA level di atas
+    `${process.cwd()}/../../vendor/node_modules/@binance/agentic-wallet/dist/index.js`,
     // Path absolut sandbox (dev)
-    "/home/z/my-project/vendor/agentic-wallet/dist/index.js",
-    // Instalasi lokal via bun add (fallback dev)
+    "/home/z/my-project/vendor/node_modules/@binance/agentic-wallet/dist/index.js",
+    // Instalasi project via bun add (fallback dev)
     "/home/z/my-project/node_modules/@binance/agentic-wallet/dist/index.js",
     `${process.cwd()}/node_modules/@binance/agentic-wallet/dist/index.js`,
+    // Layout vendor lama (copy manual) — fallback bila masih ada
+    `${process.cwd()}/vendor/agentic-wallet/dist/index.js`,
+    `${process.cwd()}/../vendor/agentic-wallet/dist/index.js`,
   ];
   for (const js of jsCandidates) {
     if (existsSync(js)) return { cmd: process.execPath, prefixArgs: [js], src: js };
