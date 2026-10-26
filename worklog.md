@@ -676,3 +676,18 @@ Work Log:
 Stage Summary:
 - 36 Random Ideas x 2 bahasa siap; 5 chip terlihat sekaligus
 - Repo bersih dari file pribadi; menunggu user menekan Publish untuk live di agenminer.space-z.ai
+
+---
+Task ID: 28
+Agent: main (Z.ai)
+Task: Potong teks UI sesuai instruksi owner (deploy ditunda)
+
+Work Log:
+- i18n: loginTagline EN -> "Mine tokens with Prompt AI on {chain}" (hapus "• Ticker {sym}"); ZH -> "在 {chain} 用 AI 提示词挖矿" (hapus "• 代币 {sym}"); panggilan t() di login-screen dibersihkan (sym tak dikirim)
+- friends-tab: kartu Bagikan dipotong sampai tombol Copy Code — tombol Share kuning dihapus (Copy Code jadi w-full), seksi "How Referrals Work" 3 langkah + komponen RefStep dihapus
+- Bersihkan import tak terpakai: Gift, GAME, TOKEN, callback share; i18n keys (share/shareText/howReferral/ref1-3) sengaja disimpan utk kemungkinan dikembalikan
+- TSC bersih + build sukses; commit 5567da7 push (b3d95d1..5567da7)
+
+Stage Summary:
+- Tagline & kartu referral kini sesuai permintaan owner
+- Deploy/production publish ditunda oleh owner ("Deploy nanti aja, saya mau memperbaiki lagi")
