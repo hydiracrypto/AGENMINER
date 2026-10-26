@@ -72,7 +72,8 @@ const ZH = {
   errPoolEmpty: "矿池已挖完！感谢参与 AGENTIC MINER。",
   errMineFail: "挖矿失败，请重试。",
   errMiningCap: "已达到钱包挖矿上限 — 每个钱包最多 7,000 AGENMINER。感谢您的参与！",
-  capLeft: "剩余可挖 {n} / 7,000",
+  capLeft: "已挖 {m} / 7,000 • 剩余 {n}",
+  capMaxNote: "升级燃烧回流矿池、不回余额 — 余额最终上限 = 当前余额 + 剩余可挖",
   noAgentHint: "未验证 Agent ID：冷却 5 分钟、奖励 50% — 连接 Binance Agentic Wallet 即可恢复完整速度",
   // ── Reward modal ──
   miningResult: "{sym} 挖矿结果",
@@ -269,7 +270,8 @@ const EN: Record<keyof typeof ZH, string> = {
   errPoolEmpty: "The mining pool is depleted! Thank you for being part of AGENTIC MINER.",
   errMineFail: "Mining failed, please try again.",
   errMiningCap: "Wallet mining cap reached — max 7,000 AGENMINER per wallet. Thank you for mining!",
-  capLeft: "{n} / 7,000 left to mine",
+  capLeft: "Mined {m} / 7,000 • {n} left",
+  capMaxNote: "Upgrade burns recycle to the pool, not back to balance — final balance ceiling = current balance + remaining cap",
   noAgentHint: "No verified Agent ID: 5-min cooldown & 50% rewards — connect your Binance Agentic Wallet to mine at full speed",
   // ── Reward modal ──
   miningResult: "{sym} Mining Result",

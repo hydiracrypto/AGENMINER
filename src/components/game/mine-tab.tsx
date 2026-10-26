@@ -202,9 +202,14 @@ export default function MineTab() {
             {t("perMine", { n: fmtNum(previewReward, 2, lang), sym: TOKEN.symbol })}
           </span>
           <span className="flex items-center gap-1 rounded-full bg-[#181A20] border border-[#2B3139] px-3 py-1.5 text-[#848E9C]">
-            <Target className="h-3 w-3 text-[#20B26C]" /> {t("capLeft", { n: fmtNum(user.capRemaining, 0, lang) })}
+            <Target className="h-3 w-3 text-[#20B26C]" /> {t("capLeft", { m: fmtNum(user.totalMined, 0, lang), n: fmtNum(user.capRemaining, 0, lang) })}
           </span>
         </div>
+
+        {/* Batas saldo akhir — bakaran upgrade didaur ulang ke pool, tidak kembali ke saldo */}
+        <p className="mt-2 max-w-md mx-auto text-center text-[10px] leading-relaxed text-[#848E9C]/80">
+          ℹ️ {t("capMaxNote")}
+        </p>
 
         {!user.verifiedAgent && (
           <p className="mt-2 max-w-sm text-center text-[10px] leading-relaxed text-[#F0B90B]/75">
