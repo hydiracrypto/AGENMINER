@@ -442,3 +442,21 @@ Work Log:
 
 Stage Summary:
 - Proyek bersih dari ±120 berkas sampah (±19MB); folder download/upload kosong dan siap dipakai deliverable berikutnya; hanya sync-agent-id.ts yang tersisa di scripts/.
+
+---
+Task ID: 17
+Agent: main (Z.ai)
+Task: "Sebelum publish bisa sign & QR muncul, setelah publish masuk https://agenminer.space-z.ai malah tidak muncul dan tidak bisa sign"
+
+Work Log:
+- Probe domain publish BARU agenminer.space-z.ai: GET / 200, TAPI POST /api/wallet/start → {"error":"Executable not found in $PATH: \"baw\""} → deployment production TIDAK punya CLI baw. Dev server (:3000) terbukti sehat — QR df3111 milik user (screenshot 11:17 WIB = 04:17 UTC) ter-serving oleh dev server lewat preview.
+- ROOT CAUSE: platform publish = build standalone (next build, output:"standalone" → .next/standalone/server.js). Standalone node_modules hanya berisi deps TER-TRACE (@next/react/prisma...) — @binance/agentic-wallet TIDAK ter-trace karena dipanggil via spawn dinamis → resolveBawBin jatuh ke bare "baw" → runtime deployment (bun) gagal spawn.
+- FIX 1 — VENDOR SELF-CONTAINED: vendor/package.json {"@binance/agentic-wallet":"1.12.0"} + `bun install --production` → vendor/node_modules (66 pkg, 8.1MB). Tes definitif: project node_modules DISEMBUNYIKAN (mv away) → CLI jalan dari /tmp via node DAN bun → 100% self-contained.
+- FIX 2 — LAUNCHER BARU: resolveBawLaunch() (pengganti resolveBawBin) → {cmd: process.execPath, prefixArgs:[jsEntry]} — CLI dijalankan lewat runtime server (node/bun, PASTI ada) tanpa bergantung PATH/node-shebang. Kandidat: cwd/vendor/node_modules (standalone ber-tracing via outputFileTracingIncludes) → cwd/../../vendor/... (cwd=.next/standalone) → absolut sandbox → node_modules project → shim .bin → PATH. Log sekali-per-proses: [baw] launcher="...".
+- FIX 3 — next.config outputFileTracingIncludes {"/api/**/*": ["./vendor/**"]} + .gitignore negasi !vendor/** + `git add -f vendor` (740 file) → commit 8400f9f & 746eb1f.
+- INSIDENTAL: mv node_modules saat dev server jalan MENG rusak Turbopack ("couldn't find next/package.json") → restart bersih rm -rf .next + prisma generate + setsid nohup bun run dev → pulih. Pelajaran: jangan mv node_modules selagi server berjalan.
+- Verifikasi: tsc/eslint bersih; POST start → QR penuh (pairing 1b771a) dengan launcher=vendor/node_modules; browser E2E modal → QR tampil pairing 9c8971 countdown 297s; screenshot download/v16-vendor-launcher.png.
+- CATATAN: agenminer.space-z.ai masih menjalankan build LAMA — perlu PUBLISH ULANG oleh user agar fix aktif di domain publish.
+
+Stage Summary:
+- Deployment kini membawa CLI baw sendiri di dalam repo (vendor self-contained) dan menjalankannya via process.execPath — sign-in tidak lagi bergantung PATH instalasi global maupun trace NFT. Dev & preview terbukti jalan; tunggu re-publish untuk memperbaiki agenminer.space-z.ai.
