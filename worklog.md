@@ -599,3 +599,26 @@ Stage Summary:
 - Mining Power kini Lv 1-10 dengan progresi eksponensial; token burn upgrade tidak bisa ditarik
 - Wallet pemburu level tinggi menyerahkan ~99% jatahnya → distribusi makin adil
 - Pending: deploy kontrak + re-publish production
+
+---
+Task ID: 24
+Agent: main (Z.ai)
+Task: Token bakaran upgrade didaur ulang kembali ke Mining Pool 70.000.000
+
+Work Log:
+- Desain: buku besar dipisah — cap pribadi 7.000 tetap dari totalMined (tidak pernah turun, anti-eksploit tambang-ulang), pool global dikreditkan lewat log daur ulang
+- Schema: model UpgradeLog baru (fromPower/toPower/cost) + relasi User.upgrades; prisma db push (additive)
+- game-config: effectivePoolRemaining(mined, recycled) = 70M − mined + recycled, clamp [0, 70M]
+- /api/boost: catat UpgradeLog dalam transaksi upgrade
+- /api/mine: guard pool_empty + clamp reward pakai pool efektif (dgn daur ulang)
+- /api/stats: poolRemaining efektif + field baru poolRecycled
+- UI pool-stats-card: baris hijau "+recycled ♻️ Upgrade burn recycled to pool" (muncul bila > 0)
+- i18n zh/en: poolRecycledLabel; types.ts GlobalStats.poolRecycled
+- scripts/test-pool-recycle.ts 15/15 PASS (termasuk bukti akuntansi tertutup: 89 withdraw + 6.911 recycle = 7.000 cap; A tak bisa tambang ulang)
+- Regresi: test-power-curve & test-withdraw-fee tetap PASS; smoke test tabel baru OK
+- Commit 41ba179 + push (668c2cd..41ba179)
+
+Stage Summary:
+- Tidak ada token terbakar sia-sia: burn upgrade → kredit pool 70M untuk wallet lain
+- Cap 7.000/wallet tetap ketat; pool efektif dipakai di mine guard, clamp reward, dan stats
+- Pending: deploy kontrak + re-publish production
