@@ -578,3 +578,24 @@ Stage Summary:
 - Catatan DB fee/net kini eksak sama dengan pembagian on-chain
 - GitHub sinkron: f448c60..09925ca
 - Pending: deploy kontrak + set contractAddress & pair PancakeSwap di config; re-publish production agar rule baru aktif
+
+---
+Task ID: 23
+Agent: main (Z.ai)
+Task: Persulit Mining Power (Lv 1-10) agar setiap wallet tidak bisa mengumpulkan banyak token
+
+Work Log:
+- Analisis kurva lama (750*p^1.6): max realistis cuma Lv3, burn 43% cap — terlalu mudah
+- Kurva baru: upgradeCost = 400 * 1.65^(p-1), hard cap GAME.maxMiningPower = 10
+- Efek vs cap lifetime 7.000/wallet: Lv5 kumulatif 3.946 (56% burn), Lv6 = 6.911 (99% burn, trofi), Lv7+ = 11.803 mustahil
+- API /api/boost: guard max_level untuk upgrade di atas Lv.10
+- UI boost-tab: label "Level X/10", badge MAX + catatan burn saat Lv.10, tombol & pesan "need more" disembunyikan di max level
+- i18n zh+en: maxLevelBadge, maxLevelNote, errMaxLevel; boostDesc & level label diperbarui
+- scripts/test-power-curve.ts: ALL PASS (tabel biaya, kumulatif, guard Lv.10)
+- Fix regresi: import api di boost-tab (terhapus saat MultiEdit) — TSC bersih
+- Commit 668c2cd + push ke GitHub (09925ca..668c2cd)
+
+Stage Summary:
+- Mining Power kini Lv 1-10 dengan progresi eksponensial; token burn upgrade tidak bisa ditarik
+- Wallet pemburu level tinggi menyerahkan ~99% jatahnya → distribusi makin adil
+- Pending: deploy kontrak + re-publish production
