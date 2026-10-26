@@ -407,3 +407,25 @@ Stage Summary:
 - ROOT CAUSE (final): public gateway WAF silently drops phone requests to paths containing "agentic" — homepage/stats pass, wallet APIs never arrive → sdkFailed forever regardless of server health. Fix = /api/wallet/* alias (proven: user's phone logged in at 02:57:38).
 - ptah.trade rotation: every user connect = NEW pairing (force + CLI pending cleanup); auto-retries keep QR stable.
 - User can now: click yellow button → QR appears instantly → scan/Open Binance sign-in → confirm → logged in. Already-connected sessions login instantly without QR.
+
+---
+Task ID: 15
+Agent: main (Z.ai)
+Task: "sebelum Deploying login pakai wallet 0x9e40...688 (DeltaComet49) bisa, setelah publish+Deploying merah lagi 'Couldn't reach the Binance network'; username ganti sesuai Agent AI wallet pemegang 0x60B9...022F contoh seperti gambar: everhand(.ai)"
+
+Work Log:
+- Timeline dev.log direkonstruksi: user login sukses 02:57:38 (ALREADY_CONNECTED 0x9e40...688) → signout 02:58 → setelah deploy, load page 03:08/03:36 SAMPAI server tapi klik connect TIDAK ADA yang tiba (pola stale-bundle: browser pegang HTML/chunk lama yang masih memanggil /api/agentic/* yang diblok WAF) → 03:46-03:47 user coba lagi dan BERHASIL (QR 4527af65 pairing=bb32e4, POST 200, poll jalan). Server 100% sejak 02:57 tidak pernah mati.
+- FIX stale-bundle: next.config.ts headers() → "/" dikirim Cache-Control: no-store + Pragma no-cache (browser tidak lagi memegang HTML lama setelah deploy; chunk tetap ter-cache normal karena content-hashed).
+- FITUR USERNAME = BINANCE AGENT ID ASLI: ditemukan perintah resmi CLI `baw wallet agent-id --json` → shape terkonfirmasi empiris {claimed:true, handle:"everhand", agentId:"everhand.ai"} (CLI milik user terbukti mengembalikan everhand.ai bahkan saat UNCONNECTED — device session account-level).
+  * src/lib/agentic-wallet.ts: extractAgentId() parser fleksibel (claimed flag, agentId/handle/domain keys, normalisasi lowercase + suffix .ai); fetchAgenticWalletInfo() kini panggil `wallet agent-id` sebagai sumber utama + fallback scrape settings; info.agentId di-pass ke registerUser di kedua path (ALREADY_CONNECTED & poll SUCCESS).
+  * src/lib/create-user.ts: registerUser(address, refCode?, realAgentId?) — user lama: username+agentId disinkronkan ke ID asli bila berubah (fallback username-only bila @unique bentrok; refCode TIDAK diubah demi referral); user baru: percobaan pertama pakai ID asli, konflik → generated.
+- MIGRASI DATA: scripts/sync-agent-id.ts (persisted) → baris 0x9e40...688: DeltaComet49 → everhand.ai (refCode tetap DELTACOMET49, balance/totalMined utuh). GET /api/leaderboard kini menampilkan "everhand.ai".
+- Dev server direstart (prisma generate + setsid nohup bun run dev) untuk next.config baru; no-store header terverifikasi via curl -D.
+- E2E browser: klik sign-in → modal → QR img + pairing 296fe9 + countdown; cancel → reconnect → pairing fd9ab1 (BERUBAH ✓ pola ptah dipertahankan); log 200 semua.
+- Sesi sign-in SEGAR dibuat utk user: qrCodeId a6f806c5, urlForWeb https://app.binance.com/uni-qr/7LbaVAqQ, pairing 5b40d7, verify child berjalan.
+- Screenshot: download/v15-agent-id-qr.png
+
+Stage Summary:
+- Username kini MENGIKUTI Binance Agent ID asli pemilik wallet (per-wallet, via CLI resmi) — bukan nama acak. Wallet user tampil sebagai "everhand.ai" (sesuai kartu Agent ID di screenshot).
+- Red error pasca-deploy = stale cached HTML memanggil path API lama; ditangani no-store di "/" + saran buka ulang link preview terbaru. Bukti: percobaan user 03:47 sukses tanpa perubahan server.
+- Sesi login segar diserahkan ke user (link uni-qr + pairing code).

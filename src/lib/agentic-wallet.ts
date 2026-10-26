@@ -205,7 +205,8 @@ export async function startAgenticSignIn(
   if (String(signin.data.status ?? "") === "ALREADY_CONNECTED") {
     const info = await fetchAgenticWalletInfo();
     if (!info.address) return { kind: "error", message: "connected session returned no address" };
-    const user = await registerUser(info.address, refCode);
+    // agentId asli Binance (mis. "everhand.ai") → username ikut ID Agen pemilik wallet
+    const user = await registerUser(info.address, refCode, info.agentId);
     return { kind: "already", user: toPublicUser(user), address: info.address };
   }
 
@@ -288,7 +289,26 @@ export async function startAgenticSignIn(
 
 export interface AgenticWalletInfo {
   address: string | null;
+  /** Binance Agent ID ASLI milik akun, mis. "everhand.ai" (dipakai sbg username) */
   agentId: string | null;
+}
+
+/**
+ * Ekstrak Agent ID dari respons CLI (`baw wallet agent-id` / `baw wallet settings`).
+ * Shape terkonfirmasi (empiris): { claimed: true, handle: "everhand", agentId: "everhand.ai" }.
+ * Normalisasi: lowercase + pastikan berakhiran ".ai" (format Agent ID Binance).
+ */
+function extractAgentId(data: Record<string, unknown> | undefined): string | null {
+  if (!data) return null;
+  // Bila flag `claimed` eksplisit false → akun belum klaim Agent ID
+  if (data.claimed === false) return null;
+  const flat = JSON.stringify(data);
+  const m = flat.match(/"(?:agentId|agent_id|handle|domain)"\s*:\s*"([^"]{2,64})"/i);
+  if (!m) return null;
+  let id = m[1].trim().toLowerCase();
+  if (!/^[a-z0-9][a-z0-9-]*(\.ai)?$/.test(id)) return null;
+  if (!id.endsWith(".ai")) id = `${id}.ai`;
+  return id;
 }
 
 /** Ambil alamat wallet dari `baw wallet address` (prioritas BSC/chain 56, lalu EVM lain) */
@@ -309,13 +329,18 @@ export async function fetchAgenticWalletInfo(): Promise<AgenticWalletInfo> {
   const bsc = evm.find((a) => a.binanceChainId === "56");
   address = (bsc ?? evm[0])?.address?.toLowerCase() ?? null;
 
-  // Agent ID (mis. "everhand.ai") — bila CLI mengeksposnya di settings
+  // Agent ID ASLI (mis. "everhand.ai") — sumber utama: perintah resmi `wallet agent-id`
   let agentId: string | null = null;
-  const settings = await runBaw(["wallet", "settings", "--json"], 20_000);
-  if (settings?.success && settings.data) {
-    const flat = JSON.stringify(settings.data);
-    const m = flat.match(/"agentId"\s*:\s*"([^"]+)"/i);
-    if (m) agentId = m[1];
+  const claimed = await runBaw(["wallet", "agent-id", "--json"], 15_000);
+  if (claimed?.success) {
+    agentId = extractAgentId(claimed.data);
+  }
+  // Fallback: scraping field agentId dari `wallet settings` (bila agent-id gagal)
+  if (!agentId) {
+    const settings = await runBaw(["wallet", "settings", "--json"], 20_000);
+    if (settings?.success && settings.data) {
+      agentId = extractAgentId(settings.data);
+    }
   }
 
   return { address, agentId };
@@ -361,7 +386,8 @@ export async function pollAgenticSignIn(qrCodeId: string): Promise<AgenticPollRe
   if (!info.address) return { status: "EXPIRED" };
   const address = info.address;
 
-  const user = await registerUser(address, session.refCode);
+  // agentId asli Binance (mis. "everhand.ai") → username ikut ID Agen pemilik wallet
+  const user = await registerUser(address, session.refCode, info.agentId);
   return {
     status: "SUCCESS",
     user: toPublicUser(user),
