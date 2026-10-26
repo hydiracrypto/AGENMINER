@@ -518,3 +518,20 @@ Work Log:
 Stage Summary:
 - Tokenomics AGENMINER kembali ke kondisi launch: pool 70.000.000 penuh, 0 penambang, 0 riwayat, wallet terputus — sign-in berikutnya registrasi baru (Agent ID everhand.ai akan ter-claim ulang otomatis).
 - PRODUKSI (agenminer.space-z.ai) masih memakai DB lama sampai user PUBLISH ULANG (DB reset sudah di GitHub).
+
+---
+Task ID: 21
+Agent: main (Z.ai)
+Task: "contracts/AgenticMiner.sol — ganti bahasa jadi Inggris + perbaiki bug agar terhubung dengan script tanpa error"
+
+Work Log:
+- Audit kontrak lama: 7 masalah ditemukan (owner immutable = tak bisa rotasi MINTER_KEY; mintWithdrawal terima amount=0; setLiquidityPool emit event sebelum state change; airdrop wajib pre-mint ke owner; tanpa increase/decreaseAllowance = approve race; constructor tanpa event OwnershipTransferred; pesan require() campur Indonesia).
+- Rewrite contracts/AgenticMiner.sol: komentar + NatSpec 100% English, revert strings English ("AGENTIC: 100M cap exceeded", "AGENTIC: insufficient balance", dst).
+- Perbaikan (signature lama SEMUA dipertahankan): owner mutable + transferOwnership() + event OwnershipTransferred; require(amount>0) di mintWithdrawal & mintOwner; setLiquidityPool state-then-event; airdropMint() batch mint langsung dari sisa hard cap (distribusi reward tanpa pre-mint); increaseAllowance()/decreaseAllowance(); fallback fee → owner saat pool kosong didokumentasikan.
+- Verifikasi scripts (scratch .solc-check, dihapus setelahnya): solc 0.8.24 + optimizer 200 → COMPILE OK 0 error 0 warning (bytecode 5541 bytes); ABI cross-check → mintWithdrawal(address,uint256,uint16) cocok persis dgn hard-coded ABI di src/lib/onchain-mint.ts; 9 selector BEP-20 standar valid (0xa9059cbb transfer, 0x095ea7b3 approve, 0x23b872dd transferFrom, dll — kompatibel PancakeSwap/BscScan); math cross-check split fee backend⇄kontrak 5 kasus → net+fee===amount EKSAK, dust ≤ 1.8e-13 token berasal dari float64 JS di sisi backend (harmless, bukan bug kontrak).
+- rg audit: tidak ada sisa kata Indonesia di .sol.
+- Commit 2e40fad (1 file, +160/-54). Push origin GAGAL (token GitHub tidak tersimpan di sesi ini) → user push manual atau beri token.
+
+Stage Summary:
+- AgenticMiner.sol final: full English, 0 error kompilasi, ABI & matematika fee terbukti cocok dengan script game (onchain-mint.ts) — siap deploy via Remix/Hardhat + verifikasi BscScan.
+- PENDING: push ke GitHub butuh token (commit 2e40fad lokal); produksi masih perlu PUBLISH ULANG utk DB reset (Task 20).
