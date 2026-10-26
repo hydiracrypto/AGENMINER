@@ -460,3 +460,25 @@ Work Log:
 
 Stage Summary:
 - Deployment kini membawa CLI baw sendiri di dalam repo (vendor self-contained) dan menjalankannya via process.execPath — sign-in tidak lagi bergantung PATH instalasi global maupun trace NFT. Dev & preview terbukti jalan; tunggu re-publish untuk memperbaiki agenminer.space-z.ai.
+
+---
+Task ID: 18
+Agent: main (Z.ai)
+Task: "agenminer.space-z.ai masih sama (QR tidak muncul/tidak bisa sign) + kode invite otomatis samakan dengan pemegang ID agentic"
+
+Work Log:
+- Probe produksi pasca republish: POST /api/wallet/start → {"error":"Failed to create key using named curve"} — BUKAN lagi "Executable not found" → fix vendor Task 17 BEKERJA (CLI ter-spawn), tapi CLI gagal DI DALAM saat operasi kripto.
+- AKAR MASALAH DITEMUKAN (reproduksi lokal): Bun 1.3.14 `crypto.createECDH("secp256k1")` → "Failed to create key using named curve" (persis error produksi); node OK. CLI baw memakai createECDH("secp256k1") utk keypair pairing QR. Dev selamat karena `bun run dev` men-spawn `next dev` di bawah NODE (shebang) → execPath=node; deployment standalone server.js dijalankan BUN langsung (format error spawn "Executable not found in $PATH" = milik Bun, terverifikasi empiris).
+- FIX 1 — POLYFILL: vendor/.../dist/ecdh-secp256k1.mjs (implementasi secp256k1 BigInt murni: pointAdd/Double/mult, modPow, modInv; antarmuka createECDH: generateKeys/getPrivateKey/getPublicKey(hex,compressed)/computeSecret). scripts/patch-baw-ecdh.mjs (idempoten) mengalihkan import CLI ke polyfill (vendor + node_modules dev).
+  * Uji vektor (bun & node): keygen compressed 33B ✓, ECDH(A,B)==ECDH(B,A) ✓, uncompressed 65B ✓, INTEROP PENUH dgn OpenSSL node (SEC1/SPKI DER + diffieHellman) == polyfill ✓ (interop Bun gagal hanya karena Bun sendiri tak bisa decode kunci secp256k1).
+  * BUKTI END-TO-END: CLI asli `auth signin --json` di bawah BUN → QR pairing penuh (pairing 42f200) — jalur yang tadinya selalu gagal.
+- FIX 2 — LAUNCHER NODE-FIRST: findNodeBinary() (/usr/bin/node dkk + scan PATH) → pickCliRuntime(): server di bawah Bun → pakai node utk CLI; tanpa node → execPath (bun) + polyfill. Log: [baw] launcher="...(node:/usr/bin/node)".
+- FIX 3 — /api/diag: {runtime, versions, crypto.nativeSecp256k1, baw:{launcher,label,cliOk,status,error,ms}} via smoke test runBaw(wallet status) — bacaan pasca-deploy tanpa log server.
+- FITUR INVITE CODE = AGENT ID: registerUser sinkron refCode user lama → agentId.toUpperCase() (fallback parsial bila @unique bentrok); user baru sudah begitu sejak Task 15. MIGRASI: scripts/sync-refcode.ts → 0x9e40...688: DELTACOMET49 → EVERHAND.AI (ter-commit).
+- SIMULASI PRODUKSI (fidelitas penuh): next build → .next/standalone → `bun server.js` PORT=3999 HOME=/tmp/baw-home → diag: runtime=bun, nativeSecp256k1=failed, launcher=vendor+node, cliOk=true → POST /api/wallet/start force → QR LENGKAP (qrCodeId/urlForWeb/pairing d69fb8/secondsLeft/qrDataUrl PNG) → vendor ter-trace benar. Dev restart: HOME 200, QR penuh, diag runtime=node.
+- Commit 7f6b6e6 (src, vendor patch+polyfill, scripts, db). Catatan: standalone mati diam-diam antar sesi tool-call = artefak shell, bukan bug (server hidup & serve selama sesi aktif).
+
+Stage Summary:
+- Sign-in QR kini TAHAN SEMUA runtime: node (native secp256k1) ATAU bun (polyfill JS teruji interop OpenSSL) — dua lapis pertahanan dalam satu deployment.
+- Kode invite = Agent ID Binance pemilik wallet (EVERHAND.AI), konsisten username+refCode.
+- Tersisa: USER PUBLISH ULANG (commit 7f6b6e6) → cek https://agenminer.space-z.ai/api/diag → klik sign-in.
