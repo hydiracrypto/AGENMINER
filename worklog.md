@@ -768,3 +768,21 @@ Stage Summary:
 - Layout mobile & desktop terverifikasi via screenshot nyata di semua tab.
 - Pool 70M: komisi & bonus join sudah terhitung otomatis (sudah benar sejak Task 20).
 - Pelajaran operasional: stale dev server = sumber "Miner not found" palsu; selalu pkill sebelum restart.
+
+---
+Task ID: 33
+Agent: Z.ai (main agent)
+Task: (1) Konfirmasi error "Couldn't load your referral team" pasca deploy; (2) rapikan blok statistik di bawah tombol MINE (screenshot owner, area dilingkari biru).
+
+Work Log:
+- Verifikasi production: chunk 16f91653 (friends-tab dgn retry pattern Task 32) SUDAH live di agenminer.space-z.ai — owner berhasil Publish. Error merah referral tidak ada lagi di kode baru; keluhan owner berasal dari cache browser/sesi lama → tinggal hard refresh.
+- mine-tab.tsx: ganti 4 pil renggang (flex-wrap, lebar beda, wrap tak beraturan di mobile) dgn grid 2x2 tile seragam — label uppercase kecil + nilai tebal, gaya konsisten dgn kartu referral. Tile Wallet cap dpt progress bar emas tipis (totalMined / GAME.perWalletCap).
+- Tile: Power (Zap, emas), Streak (Flame, merah, +bonus hijau), Per mine (Coins, kuning, estimasi skor 60), Wallet cap (Target, hijau, progress bar).
+- i18n.ts: tambah powerLabel, streakLabel, daysShort, perMineLabel, capLabel (zh+en). capLeft/perMine/streakDays tetap ada (tak dipakai, aman).
+- Verifikasi visual agent-browser dgn user uji 0x...99: mobile 390x844 (grid 2x2 rapi, progress bar tampil, catatan capMaxNote/noAgentHint di bawahnya) + desktop 1440x900 (grid terpusat dlm kolom kiri, tanpa overflow). TSC OK, build sukses.
+- Commit 4bd0f51 + push main. DB uji dikembalikan ke HEAD (git checkout db/custom.db), server dev dimatikan.
+
+Stage Summary:
+- Blok statistik MINE kini grid 2x2 seragam dgn progress bar cap — rapi di mobile & desktop.
+- Owner perlu Publish sekali lagi utk layout baru ini, lalu hard refresh.
+- Referral: versi live sudah memuat tombol Refresh ala Top 100 Miners (konfirmasi chunk 16f91653 live).
