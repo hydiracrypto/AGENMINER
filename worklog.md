@@ -713,3 +713,24 @@ Stage Summary:
 - Owner bisa lihat siapa saja yang join via link referral-nya, 20/halaman dengan Next/Previous
 - Link referral kini bisa dibagikan ke X, Telegram, WhatsApp, Facebook + native share
 - Menunggu owner menekan Publish untuk live
+
+---
+Task ID: 30
+Agent: Z.ai (main agent)
+Task: Perbaiki error "Mining failed, please try again." di menu My Referral + hapus tombol Copy Code (pertahankan Share).
+
+Work Log:
+- Diagnosis: screenshot owner menunjukkan error merah "Mining failed" di kartu My Referral Team. Ternyata pesan itu adalah fallback `t("errMineFail")` di catch `loadReferrals` (friends-tab.tsx).
+- Akar masalah: `db/custom.db` (SQLite production) ter-commit ke git dalam keadaan kosong/ter-wipe pada commit Task 29 (d3a1b43) → semua akun production hilang → GET /api/referrals balik 404 "User not found" → UI menampilkan pesan error mining yang menyesatkan. Verifikasi: prod /api/stats → totalMiners:0, totalMined:0.
+- Temuan tambahan: server dev lokal 500 di /api/stats karena Prisma client stale (proses jalan 3j50m, lebih tua dari `prisma generate` terakhir). Fix lokal: kill proses + rm -rf .next + restart.
+- Fix friends-tab.tsx: (1) catch 404 → render tim kosong (refEmpty), bukan error; (2) error lain → pesan jujur `refLoadFail` + tombol Retry yang memuat ulang halaman aktif; (3) hapus tombol "Copy Code: {code}" sesuai permintaan owner, tombol Share jadi full-width, ikon salin pada baris link dipertahankan; state `copied` disederhanakan (boolean).
+- Fix page.tsx: saat boot, jika getUser 404 (akun hilang dari server) → auto `api.login(address)` untuk mendaftarkan ulang secara diam-diam; gagal juga → clearSession (perilaku lama).
+- i18n: tambah key `refLoadFail` + `retry` (zh/en).
+- Test E2E baru scripts/test-referrals.ts (idempoten): seed referrer + 22 referred users → P1=20 items/totalPages 2, P2=2 items, page 99 clamp ke 2, unregistered 404, invalid 400 — semua lulus. Data uji dibersihkan setelahnya (users kembali 0).
+- `bunx tsc --noEmit` OK, `bun run build` OK. Commit b4f18be + push ke main.
+
+Stage Summary:
+- Error "Mining failed" di My Referral Team teratasi dengan 3 lapis: auto re-register saat boot, 404 → tim kosong, error jujur + Retry.
+- Tombol Copy Code dihapus, Share full-width — sesuai permintaan owner.
+- CATATAN ARSITEKTUR: production DB = file db/custom.db yang ter-commit; setiap re-publish me-reset data production sesuai isi file di repo. Data yang tercipta di production runtime TIDAK mengalir balik ke git. Jangan pernah commit DB yang baru di-reset/wipe; bila ingin reset manual, lakukan via db:reset lalu pastikan file ter-commit adalah kondisi yang diinginkan.
+- Saldo/riwayat production owner (1.093 mined, dsb.) telah hilang oleh commit d3a1b43 dan tidak dapat dipulihkan — akun baru mulai dari 0 (otomatis dibuat ulang saat owner membuka situs).
