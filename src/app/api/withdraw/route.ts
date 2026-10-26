@@ -26,12 +26,17 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: "Account not found", errorKey: "account_missing" }, { status: 404 });
     }
-    if (user.balance < amount) {
-      return NextResponse.json({ error: "Insufficient balance", errorKey: "insufficient" }, { status: 400 });
-    }
 
     // ── Pecah: net ke wallet + fee ke likuiditas PancakeSwap ──
+    // total = amount terkuantisasi (2 desimal) — yang benar-benar dipotong dari saldo.
     const { net, fee } = splitWithdrawal(amount);
+    const total = Math.round((net + fee) * 100) / 100;
+    if (total <= 0) {
+      return NextResponse.json({ error: "Invalid amount", errorKey: "invalid_amount" }, { status: 400 });
+    }
+    if (user.balance < total) {
+      return NextResponse.json({ error: "Insufficient balance", errorKey: "insufficient" }, { status: 400 });
+    }
 
     // ── Auto-mint on-chain (onchain bila kontrak+key aktif, else simulated) ──
     const mint = await mintWithdrawalOnchain(user.walletAddress, net, fee);
@@ -47,12 +52,12 @@ export async function POST(req: NextRequest) {
     const updated = await db.$transaction(async (tx) => {
       const u = await tx.user.update({
         where: { id: user.id },
-        data: { balance: { decrement: amount } },
+        data: { balance: { decrement: total } },
       });
       const w = await tx.withdrawal.create({
         data: {
           userId: user.id,
-          amount,
+          amount: total,
           fee,
           netAmount: net,
           status: "PROCESSED", // langsung MINTED — tidak antre manual

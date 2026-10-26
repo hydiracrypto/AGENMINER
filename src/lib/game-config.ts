@@ -39,10 +39,19 @@ export const PANCAKESWAP = {
   pair: "",
 } as const;
 
-/** Pecahkan jumlah penarikan → net ke wallet + fee ke likuiditas PancakeSwap */
+/**
+ * Pecahkan jumlah penarikan → net ke wallet + fee ke likuiditas PancakeSwap.
+ * Matematika DIJAMIN identik dengan kontrak `mintWithdrawal`:
+ *   fee = amount_wei x feeBps / 10000 (pembagian bulat di level wei).
+ * Amount dikuantisasi ke 2 desimal (floor — tidak pernah melebihi input),
+ * lalu fee dihitung eksak 4 desimal, sehingga catatan DB (fee/net) selalu
+ * persis sama dengan pembagian on-chain (deviasi 0.528 vs 0.53 hilang).
+ */
 export function splitWithdrawal(amount: number): { net: number; fee: number } {
-  const fee = Math.round(amount * WITHDRAW.feePct) / 100; // bulatkan ke 2 desimal
-  const net = Math.round((amount - fee) * 100) / 100;
+  const amt = Math.floor(amount * 100 + 1e-9) / 100; // kuantisasi 2 desimal, anti float-noise
+  if (amt <= 0) return { net: 0, fee: 0 };
+  const fee = Math.round(amt * WITHDRAW.feePct * 100) / 10000; // eksak 4 desimal (mis. 0.528)
+  const net = Math.round((amt - fee) * 10000) / 10000;
   return { net, fee };
 }
 

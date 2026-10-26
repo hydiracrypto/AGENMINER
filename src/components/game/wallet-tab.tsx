@@ -73,7 +73,7 @@ export default function WalletTab() {
       const { net, fee } = splitWithdrawal(amt);
       setFeedback({
         type: "ok",
-        msg: t("okWithdraw", { n: fmtNum(net, 2, lang), fee: fmtNum(fee, 2, lang), sym: TOKEN.symbol }),
+        msg: t("okWithdraw", { n: fmtNum(net, 4, lang), fee: fmtNum(fee, 4, lang), sym: TOKEN.symbol }),
       });
       loadHistory();
       api
@@ -158,13 +158,13 @@ export default function WalletTab() {
             <div className="flex items-center justify-between">
               <span className="text-[#848E9C]">{t("receiveLabel")}</span>
               <span className="font-bold tabular-nums text-[#20B26C]">
-                {fmtNum(preview.net, 2, lang)} {TOKEN.symbol}
+                {fmtNum(preview.net, 4, lang)} {TOKEN.symbol}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-[#848E9C]">{t("feeLabel", { p: WITHDRAW.feePct })}</span>
               <span className="font-bold tabular-nums text-[#F0B90B]">
-                -{fmtNum(preview.fee, 2, lang)} {TOKEN.symbol}
+                -{fmtNum(preview.fee, 4, lang)} {TOKEN.symbol}
               </span>
             </div>
           </div>
@@ -284,7 +284,7 @@ export default function WalletTab() {
                     -{fmtNum(w.amount, 2, lang)} {TOKEN.symbol}
                     {typeof w.fee === "number" && w.fee > 0 && (
                       <span className="ml-2 text-[10px] font-semibold text-[#C994F7]">
-                        💧 {t("feeAmountLabel")} {fmtNum(w.fee, 2, lang)} → PCS
+                        💧 {t("feeAmountLabel")} {fmtNum(w.fee, 4, lang)} → PCS
                       </span>
                     )}
                   </p>
