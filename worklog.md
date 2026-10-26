@@ -535,3 +535,26 @@ Work Log:
 Stage Summary:
 - AgenticMiner.sol final: full English, 0 error kompilasi, ABI & matematika fee terbukti cocok dengan script game (onchain-mint.ts) — siap deploy via Remix/Hardhat + verifikasi BscScan.
 - PENDING: push ke GitHub butuh token (commit 2e40fad lokal); produksi masih perlu PUBLISH ULANG utk DB reset (Task 20).
+
+---
+Task ID: 22
+Agent: main (Z.ai)
+Task: "Cap mining 7.000 token/wallet, komisi referral diperkecil agar pool 70M cukup utk 7.000-10.000 holder, wallet tanpa Agent ID (0x60B9...022F) mining lebih lambat/sulit agar adil"
+
+Work Log:
+- game-config.ts: GAME.refCommission 0.05→0.02; baru perWalletCap=7.000, noAgentIdCooldownMs=300.000, noAgentIdRewardMult=0.5; helper effectiveCooldownMs/remainingCap/clampToCap; komentar ekonomi distribusi adil (70M ÷ 7.000 = maks 10.000 holder full-cap).
+- Prisma: User +verifiedAgent (Boolean, default false) — true hanya utk Agent ID ASLI Binance via QR pairing; db push sukses; tsc bersih.
+- create-user.ts: registerUser set verifiedAgent:Boolean(agentName) saat create; sinkronisasi user lama → upgrade verified bila pairing dgn Agent ID asli; bonus join referrer 500 di-clamp cap 7.000 & KINI menambah totalMined (ikut pool 70M).
+- /api/mine: cap check 7.000 → 403 mining_cap; cooldown dinamis (60s verified / 300s unverified); reward ×0.5 utk unverified; clamp reward ke sisa pool & sisa cap; komisi 2% di-clamp cap referrer + totalMined referrer increment (menutup kebocoran pool: dulu komisi 5% dicetak di luar akuntansi 70M!).
+- /api/boost: check-in harian di-clamp cap 7.000 + totalMined increment (dulu di luar pool).
+- user-utils/types: PublicUser +verifiedAgent, +cooldownMs, +capRemaining; nextMineAt pakai cooldown efektif.
+- mine-tab.tsx: ring cooldown pakai user.cooldownMs; chip "sisa cap {n}/7.000"; hint 🐢 tanpa Agent ID; error mining_cap dilokalkan.
+- i18n: errMiningCap, capLeft, noAgentHint (zh+en).
+- Test E2E (scripts/test-cap-economy.ts + test-verified-agent.ts): 16/16 + 7/7 PASS — unverified: reward 50% (score 85→40), cooldown 299.989ms, bonus join 500 & komisi 0.8 (2%) masuk totalMined, clamp 6995→reward 5→cap 0→403 mining_cap; verified: reward penuh 80, cooldown 59.990ms, capRemaining 6.920. DB dibersihkan kembali ke launch state (0 user, pool 70.000.000).
+- Insiden runtime: restart dev server pertama gagal (proses lama PIDs 12616-12632 dari 05:01 masih pegang port 3000 dgn Prisma Client basi → "Failed to create account" + SELECT tanpa verifiedAgent); dibunuh by-PID; pola stabil: start server + test dalam SATU sesi bash (job background mati antar sesi).
+- Commit 0de301c. Push origin GAGAL (token GitHub tak tersedia di sesi) → perlu push manual/token.
+
+Stage Summary:
+- Ekonomi adil aktif: SEMUA reward (mining AI + check-in + komisi + bonus join) dijamin ≤ 7.000/wallet → SUM(totalMined) ≤ 70M → pool 70.000.000 terbagi tepat ke 7.000-10.000 holder.
+- Wallet owner 0x60B9262456dE011F7d15a54CdD8c48bAaa8B022F: bila login TANPA Agentic Wallet → track lambat (5 mnt, 50%); bila pairing dgn Agent ID Binance → kecepatan penuh; keduanya cap 7.000 (adil, tanpa privilege).
+- PENDING user: push GitHub (commit 0de301c) + publish ulang produksi.
