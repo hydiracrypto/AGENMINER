@@ -558,3 +558,23 @@ Stage Summary:
 - Ekonomi adil aktif: SEMUA reward (mining AI + check-in + komisi + bonus join) dijamin ≤ 7.000/wallet → SUM(totalMined) ≤ 70M → pool 70.000.000 terbagi tepat ke 7.000-10.000 holder.
 - Wallet owner 0x60B9262456dE011F7d15a54CdD8c48bAaa8B022F: bila login TANPA Agentic Wallet → track lambat (5 mnt, 50%); bila pairing dgn Agent ID Binance → kecepatan penuh; keduanya cap 7.000 (adil, tanpa privilege).
 - PENDING user: push GitHub (commit 0de301c) + publish ulang produksi.
+
+---
+Task ID: 22
+Agent: main (Z.ai)
+Task: Cek menu Withdraw (fee 5% → PancakeSwap liquidity, fee ditanggung withdrawer) + push ke GitHub
+
+Work Log:
+- Verifikasi end-to-end alur withdraw: UI wallet-tab (preview net/fee, card Liquidity, history → PCS), API /api/withdraw (saldo dipotong penuh, fee → LiquidityLog), onchain-mint.ts (mintWithdrawal 500 bps), AgenticMiner.sol (fee → liquidityPool / fallback owner)
+- Fix presisi: splitWithdrawal kini floor-kuantisasi amount ke 2 desimal + fee eksak 4 desimal → identik dengan pembagian integer wei Solidity (10.56 → fee 0.528, bukan 0.53)
+- API /api/withdraw: balance check & decrement pakai total terkuantisasi (net+fee) + guard dust amount
+- wallet-tab: preview, pesan sukses, history fee ditampilkan 4 desimal
+- scripts/test-withdraw-fee.ts: 15/15 PASS membuktikan DB split === on-chain split
+- Restore mode-only changes (742 file, 644→755) via git checkout
+- Commit 09925ca + push ke GitHub (hydiracrypto/AGENMINER, main) — termasuk commit tertunda 2e40fad (kontrak) & 0de301c (ekonomi cap 7000)
+
+Stage Summary:
+- Withdraw fee 5% → PancakeSwap liquidity terverifikasi benar di semua lapisan
+- Catatan DB fee/net kini eksak sama dengan pembagian on-chain
+- GitHub sinkron: f448c60..09925ca
+- Pending: deploy kontrak + set contractAddress & pair PancakeSwap di config; re-publish production agar rule baru aktif
