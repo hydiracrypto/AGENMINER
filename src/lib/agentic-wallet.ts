@@ -36,6 +36,51 @@ export interface BawLaunch {
  * Solusi: package di-VENDOR ke repo (vendor/agentic-wallet, ikut ter-commit &
  * ter-deploy) dan dijalankan via process.execPath — runtime server pasti ada.
  */
+/**
+ * Cari binary node — DIPERLUKAN bila server berjalan di bawah runtime yang
+ * tidak mendukung createECDH("secp256k1") (Bun melempar "Failed to create key
+ * using named curve" — akar masalah agenminer.space-z.ai). Node menangani
+ * kripto CLI secara native; polyfill JS di vendor adalah lapisan cadangan.
+ */
+function findNodeBinary(): string | null {
+  const candidates = [
+    "/usr/bin/node",
+    "/usr/local/bin/node",
+    "/bin/node",
+    "/opt/node/bin/node",
+    "/usr/lib/node/bin/node",
+  ];
+  for (const dir of (process.env.PATH ?? "").split(":")) {
+    if (dir) candidates.push(`${dir}/node`);
+  }
+  for (const c of candidates) {
+    try {
+      if (existsSync(c)) return c;
+    } catch {
+      /* ignore */
+    }
+  }
+  return null;
+}
+
+/**
+ * Pilih runtime utk menjalankan entry JS CLI:
+ * - node (battle-tested, secp256k1 native) — WAJIB diprioritaskan saat server
+ *   berjalan di bawah Bun (createECDH secp256k1 tidak tersedia di Bun).
+ * - fallback: process.execPath — CLI vendor sudah DIPATCH dengan polyfill
+ *   secp256k1 murni-JS (vendor/.../dist/ecdh-secp256k1.mjs) sehingga tetap
+ *   berfungsi walau dijalankan di bawah Bun tanpa node.
+ */
+function pickCliRuntime(js: string): BawLaunch {
+  const underBun = Boolean((process.versions as Record<string, string | undefined>).bun);
+  if (underBun) {
+    const nodeBin = findNodeBinary();
+    if (nodeBin) return { cmd: nodeBin, prefixArgs: [js], src: `${js} (node:${nodeBin})` };
+    return { cmd: process.execPath, prefixArgs: [js], src: `${js} (bun+polyfill)` };
+  }
+  return { cmd: process.execPath, prefixArgs: [js], src: js };
+}
+
 function resolveBawLaunch(): BawLaunch {
   // 0) Override eksplisit (binary executable langsung)
   const envBin = process.env.BAW_BIN;
@@ -60,7 +105,7 @@ function resolveBawLaunch(): BawLaunch {
     `${process.cwd()}/../vendor/agentic-wallet/dist/index.js`,
   ];
   for (const js of jsCandidates) {
-    if (existsSync(js)) return { cmd: process.execPath, prefixArgs: [js], src: js };
+    if (existsSync(js)) return pickCliRuntime(js);
   }
   // 2) Shim .bin / global — spawn langsung (butuh shebang + node di PATH)
   const binCandidates = [
@@ -87,9 +132,15 @@ const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 /** Log sumber launcher sekali per proses — memudahkan diagnosis deployment */
 let bawSrcLogged = false;
+let lastLauncherSrc = "unknown";
+
+/** Sumber launcher terakhir yang dipakai runBaw — dipakai /api/diag */
+export function getBawLauncherSrc(): string {
+  return lastLauncherSrc;
+}
 
 /** Jalankan perintah baw sampai selesai (async, tidak memblokir event loop) */
-function runBaw(args: string[], timeoutMs = 30_000): Promise<BawJson> {
+export function runBaw(args: string[], timeoutMs = 30_000): Promise<BawJson> {
   return new Promise((resolve) => {
     let settled = false;
     const done = (v: BawJson) => {
@@ -100,6 +151,7 @@ function runBaw(args: string[], timeoutMs = 30_000): Promise<BawJson> {
     };
     try {
       const launch = resolveBawLaunch();
+      lastLauncherSrc = launch.src;
       if (!bawSrcLogged) {
         bawSrcLogged = true;
         console.log(`[baw] launcher="${launch.src}" prefix=${JSON.stringify(launch.prefixArgs)}`);

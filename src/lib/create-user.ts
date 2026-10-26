@@ -26,25 +26,44 @@ export async function registerUser(
   const agentName = (realAgentId ?? "").trim().toLowerCase() || null;
   const ref = (refCode ?? "").trim().toUpperCase();
 
-  // Sudah terdaftar → sinkronkan username dgn Binance Agent ID asli (bila ada & berubah)
+  // Sudah terdaftar → sinkronkan username + KODE INVITE dgn Binance Agent ID
+  // asli (bila ada & berubah). Kode invite = Agent ID uppercase (mis.
+  // "EVERHAND.AI") — sesuai permintaan: kode invite mengikuti ID Agen pemilik.
   const existing = await db.user.findUnique({ where: { walletAddress: addr } });
   if (existing) {
-    if (agentName && agentName !== existing.username) {
+    const wantRef = agentName ? agentName.toUpperCase() : null;
+    const needUsername = agentName && agentName !== existing.username;
+    const needRef = wantRef && wantRef !== existing.refCode;
+    if (needUsername || needRef) {
+      const data: { username?: string; agentId?: string; refCode?: string } = {};
+      if (needUsername) {
+        data.username = agentName;
+        data.agentId = agentName;
+      }
+      if (needRef) data.refCode = wantRef;
       try {
-        return await db.user.update({
-          where: { id: existing.id },
-          data: { username: agentName, agentId: agentName },
-        });
+        return await db.user.update({ where: { id: existing.id }, data });
       } catch {
-        // agentId @unique bentrok (dipakai wallet lain) → update username saja
+        // agentId/refCode @unique bentrok → coba sinkron parsial (username saja,
+        // lalu refCode saja) agar perubahan yang mungkin tetap diterapkan
         try {
-          return await db.user.update({
-            where: { id: existing.id },
-            data: { username: agentName },
-          });
+          if (needUsername) {
+            return await db.user.update({
+              where: { id: existing.id },
+              data: { username: agentName, agentId: agentName },
+            });
+          }
         } catch {
-          return existing;
+          /* lanjut ke percobaan refCode */
         }
+        try {
+          if (needRef) {
+            return await db.user.update({ where: { id: existing.id }, data: { refCode: wantRef } });
+          }
+        } catch {
+          /* biarkan data lama */
+        }
+        return existing;
       }
     }
     return existing;
