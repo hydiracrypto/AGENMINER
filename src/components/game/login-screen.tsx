@@ -112,7 +112,7 @@ export default function LoginScreen() {
               AGENTIC <span className="am-title-gradient">MINER</span>
             </h1>
             <p className="mt-1.5 text-sm text-[#848E9C] lg:mt-3 lg:text-base lg:leading-relaxed">
-              {t("loginTagline", { chain: TOKEN.chainShort, sym: TOKEN.symbol })}
+              {t("loginTagline", { chain: TOKEN.chainShort })}
             </p>
           </div>
 

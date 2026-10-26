@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { Users, Copy, Check, Share2, Coins, Gift } from "lucide-react";
+import { Users, Copy, Check, Share2, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { GAME, TOKEN, fmtNum } from "@/lib/game-config";
+import { fmtNum } from "@/lib/game-config";
 import { useGameStore } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 
@@ -23,20 +23,6 @@ export default function FriendsTab() {
       /* clipboard tidak tersedia */
     }
   }, []);
-
-  const share = useCallback(async () => {
-    if (!user) return;
-    const text = t("shareText", { sym: TOKEN.symbol, code: user.refCode, link: shareLink });
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: "AGENTIC MINER", text, url: shareLink });
-      } else {
-        await copy(text, "link");
-      }
-    } catch {
-      /* dibatalkan user */
-    }
-  }, [user, shareLink, copy, t]);
 
   if (!user) return null;
 
@@ -88,49 +74,13 @@ export default function FriendsTab() {
           <Button
             onClick={() => copy(user.refCode, "code")}
             variant="outline"
-            className="flex-1 h-11 rounded-xl border-[#2B3139] bg-[#0B0E11] text-xs font-bold hover:bg-[#1E2329] whitespace-nowrap truncate px-2"
+            className="w-full h-11 rounded-xl border-[#2B3139] bg-[#0B0E11] text-xs font-bold hover:bg-[#1E2329] whitespace-nowrap truncate px-2"
           >
             {copied === "code" ? <Check className="mr-1.5 h-4 w-4 text-[#20B26C]" /> : <Copy className="mr-1.5 h-4 w-4" />}
             {copied === "code" ? t("copied") : t("copyCode", { code: user.refCode })}
           </Button>
-          <Button
-            onClick={share}
-            className="flex-1 h-11 rounded-xl bg-gradient-to-r from-[#F8D33A] to-[#F0B90B] font-bold text-[#0B0E11] hover:opacity-90"
-          >
-            <Share2 className="mr-1.5 h-4 w-4" /> {t("share")}
-          </Button>
         </div>
       </div>
-      </div>
-
-      {/* Cara kerja referral */}
-      <div className="am-card rounded-2xl border border-[#2B3139] bg-[#181A20] p-5">
-        <h3 className="text-sm font-bold flex items-center gap-1.5 mb-3">
-          <Gift className="h-4 w-4 text-[#20B26C]" /> {t("howReferral")}
-        </h3>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <RefStep n={1} title={t("ref1Title")} desc={t("ref1Desc")} />
-          <RefStep
-            n={2}
-            title={t("ref2Title")}
-            desc={t("ref2Desc", { n: fmtNum(GAME.referrerJoinBonus, 0, lang), sym: TOKEN.symbol })}
-          />
-          <RefStep n={3} title={t("ref3Title")} desc={t("ref3Desc", { p: GAME.refCommission * 100 })} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function RefStep({ n, title, desc }: { n: number; title: string; desc: string }) {
-  return (
-    <div className="flex gap-3 rounded-xl border border-[#2B3139] bg-[#0B0E11] p-4">
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#20B26C]/15 text-[11px] font-bold text-[#20B26C]">
-        {n}
-      </span>
-      <div>
-        <p className="text-xs font-bold">{title}</p>
-        <p className="mt-1 text-[11px] leading-relaxed text-[#848E9C]">{desc}</p>
       </div>
     </div>
   );

@@ -15,7 +15,7 @@ export const DEFAULT_LANG: Lang = "zh";
 
 const ZH = {
   // ── Login screen ──
-  loginTagline: "在 {chain} 用 AI 提示词挖矿 • 代币 {sym}",
+  loginTagline: "在 {chain} 用 AI 提示词挖矿",
   poweredBy: "由 Binance Agentic AI 驱动",
   invitedWith: "邀请码",
   totalSupply: "总供应量",
@@ -214,7 +214,7 @@ const ZH = {
 
 const EN: Record<keyof typeof ZH, string> = {
   // ── Login screen ──
-  loginTagline: "Mine tokens with Prompt AI on {chain} • Ticker {sym}",
+  loginTagline: "Mine tokens with Prompt AI on {chain}",
   poweredBy: "Powered by Binance Agentic AI",
   invitedWith: "Invited with code",
   totalSupply: "Total Supply",
