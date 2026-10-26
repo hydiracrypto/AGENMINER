@@ -29,7 +29,7 @@ export default function MineTab() {
 
   // Hindari hydration mismatch: contoh prompt acak hanya di client (async, bukan sync-in-effect)
   useEffect(() => {
-    const tt = setTimeout(() => setExamples(randomExamples(3, lang)), 0);
+    const tt = setTimeout(() => setExamples(randomExamples(5, lang)), 0);
     return () => clearTimeout(tt);
   }, [lang]);
 
@@ -229,7 +229,7 @@ export default function MineTab() {
             {t("miningPrompt")}
           </h3>
           <button
-            onClick={() => setExamples(randomExamples(3, lang))}
+            onClick={() => setExamples(randomExamples(5, lang))}
             className="flex items-center gap-1 text-xs text-[#848E9C] hover:text-[#F0B90B] transition-colors"
           >
             <Shuffle className="h-3.5 w-3.5" />
@@ -255,7 +255,7 @@ export default function MineTab() {
               <button
                 key={i}
                 onClick={() => setPrompt(ex)}
-                className="text-left text-xs text-[#848E9C] hover:text-[#FCD535] rounded-lg border border-dashed border-[#2B3139] px-3 py-2 hover:border-[#FCD535]/50 transition-colors truncate"
+                className="text-left text-xs text-[#848E9C] hover:text-[#FCD535] rounded-lg border border-dashed border-[#2B3139] px-3 py-2 hover:border-[#FCD535]/50 transition-colors line-clamp-2"
               >
                 💡 {ex}
               </button>
