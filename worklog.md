@@ -749,3 +749,22 @@ Work Log:
 Stage Summary:
 - Kartu Share kini: baris link (dgn ikon salin) + [Copy Code: EVERHAND.AI] [Share] berdampingan + menu sosmed (X/Telegram/WhatsApp/Facebook).
 - Owner perlu klik Publish lagi di chat.z.ai agar perubahan tampil di production.
+
+---
+Task ID: 32
+Agent: Z.ai (main agent)
+Task: (1) Perbaiki error "Couldn't load your referral team" dgn pola refresh ala Top 100 Miners; (2) perbaiki tampilan mobile/desktop; (3) komisi referral masuk akuntansi pool 70M.
+
+Work Log:
+- Verifikasi kode: komisi referral 2% (mine route L141) & bonus join 500 (create-user L115) SUDAH increment totalMined referrer → SUDAH mengonsumsi pool 70M otomatis. Tidak perlu ubah kode — dijelaskan ke owner.
+- friends-tab.tsx: hapus total kotak error merah + state refError. loadReferrals kini retry 3x (jeda 0/600/1500ms), 404 → tim kosong, 4xx lain berhenti tanpa retry, gagal total → data lama dipertahankan / tampil tim kosong. Header kartu dapat tombol Refresh (RefreshCw berputar saat loading) persis pola menu Top 100 Miners.
+- referrals route: orderBy [createdAt desc, id desc] — urutan stabil bila timestamp seri (terlihat saat data uji 22 user dibuat < 1ms).
+- DEBUG PENTING: server dev lama ternyata BISA bertahan antar-panggilan tool (proses 11:05 masih hidup saat seed 11:35) → server baru gagal bind :3000, curl mengenai server stale yang fd SQLite-nya menunjuk inode DB lama → "Miner not found" palsu. Solusi: SELALU pkill -9 -f "next dev|next-server|bun run dev" sebelum mulai server baru, dan jalankan server+test dalam satu panggilan bash.
+- Verifikasi visual agent-browser (seed 22 anggota tim, session localStorage): Friends mobile 390x844 (komisi+copy code+share, list, paginasi 1/2, how-it-works — semua rapi), Friends desktop 1440x900 (grid 2 kolom + sidebar), Boost/Rank/Wallet mobile — tidak ada masalah layout.
+- TSC OK, build sukses. Commit 7127e1d + push main. Data uji dibersihkan (users 0, db/custom.db dikembalikan ke HEAD).
+
+Stage Summary:
+- Error merah referral hilang total → pola refresh ala Rank + retry otomatis 3x.
+- Layout mobile & desktop terverifikasi via screenshot nyata di semua tab.
+- Pool 70M: komisi & bonus join sudah terhitung otomatis (sudah benar sejak Task 20).
+- Pelajaran operasional: stale dev server = sumber "Miner not found" palsu; selalu pkill sebelum restart.
