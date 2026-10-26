@@ -16,6 +16,7 @@ import type {
   MineResult,
   PublicUser,
   RecentMine,
+  ReferralsResult,
   WithdrawalItem,
 } from "./types";
 
@@ -194,6 +195,12 @@ export const api = {
   leaderboard: (me?: string) =>
     jsonFetch<{ rows: LeaderboardRow[]; meRank: number }>(
       `/api/leaderboard${me ? `?me=${encodeURIComponent(me)}` : ""}`
+    ),
+
+  /** Daftar miner yang bergabung via link referral kita — dipaginasi (Next/Previous) */
+  referrals: (address: string, page = 1) =>
+    jsonFetch<ReferralsResult>(
+      `/api/referrals?address=${encodeURIComponent(address)}&page=${page}&_t=${Date.now()}`
     ),
 
   stats: () => jsonFetch<GlobalStats>("/api/stats"),

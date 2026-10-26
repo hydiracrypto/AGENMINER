@@ -59,6 +59,25 @@ export interface LeaderboardRow {
   isMe: boolean;
 }
 
+// Satu baris di daftar referral — walletAddress sudah di-truncate dari server
+export interface ReferralItem {
+  username: string;
+  agentId: string;
+  walletAddress: string;
+  avatar: string;
+  totalMined: number;
+  verifiedAgent: boolean;
+  joinedAt: string; // ISO date
+}
+
+export interface ReferralsResult {
+  items: ReferralItem[];
+  total: number;
+  page: number;
+  totalPages: number;
+  limit: number;
+}
+
 export interface GlobalStats {
   totalSupply: number;
   miningPool: number;
