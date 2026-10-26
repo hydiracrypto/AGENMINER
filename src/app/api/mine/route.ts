@@ -1,7 +1,7 @@
 // POST /api/mine — Tambang AGENMINER via prompt AI (inti game)
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { GAME, TOKEN, clampToCap, computeReward, effectiveCooldownMs, isValidEvmAddress, remainingCap, todayStr } from "@/lib/game-config";
+import { GAME, TOKEN, clampToCap, computeReward, effectiveCooldownMs, effectivePoolRemaining, isValidEvmAddress, remainingCap, todayStr } from "@/lib/game-config";
 import { evaluateMiningPrompt } from "@/lib/ai-engine";
 import { nextStreak, toPublicUser } from "@/lib/user-utils";
 
@@ -74,10 +74,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // ── Cek pool mining global ──
-    const agg = await db.user.aggregate({ _sum: { totalMined: true } });
+    // ── Cek pool mining global (token bakaran upgrade didaur ulang ke pool) ──
+    const [agg, upAgg] = await Promise.all([
+      db.user.aggregate({ _sum: { totalMined: true } }),
+      db.upgradeLog.aggregate({ _sum: { cost: true } }),
+    ]);
     const globalMined = agg._sum.totalMined ?? 0;
-    if (globalMined >= TOKEN.miningPool) {
+    const totalRecycled = upAgg._sum.cost ?? 0;
+    const poolRemaining = effectivePoolRemaining(globalMined, totalRecycled);
+    if (poolRemaining <= 0) {
       return NextResponse.json(
         { error: "Mining pool is depleted!", errorKey: "pool_empty" },
         { status: 409 }
@@ -93,8 +98,7 @@ export async function POST(req: NextRequest) {
     // ── Hitung reward (50% speed bila wallet tanpa Agent ID Binance) ──
     const speedMult = user.verifiedAgent ? 1 : GAME.noAgentIdRewardMult;
     let reward = Math.round(computeReward(verdict.score, user.miningPower, newStreak) * speedMult);
-    // Jangan biarkan reward melebihi sisa pool & sisa cap 7.000 wallet
-    const poolRemaining = TOKEN.miningPool - globalMined;
+    // Jangan biarkan reward melebihi sisa pool (efektif, termasuk daur ulang) & sisa cap 7.000 wallet
     if (reward > poolRemaining) reward = Math.max(0, Math.floor(poolRemaining));
     reward = Math.min(reward, capRemaining);
 

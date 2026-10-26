@@ -41,6 +41,12 @@ export async function POST(req: NextRequest) {
           where: { id: user.id },
           data: { balance: { decrement: cost }, miningPower: { increment: 1 } },
         });
+        // ── DAUR ULANG POOL: token terbakar dikreditkan kembali ke pool 70M ──
+        // Catatan totalMined TIDAK dikurangi → cap pribadi 7.000/wallet tetap
+        // terpakai (anti-keuntungan), hanya pool global yang mendapat kredit.
+        await tx.upgradeLog.create({
+          data: { userId: user.id, fromPower: user.miningPower, toPower: user.miningPower + 1, cost },
+        });
         return u;
       });
       return NextResponse.json({

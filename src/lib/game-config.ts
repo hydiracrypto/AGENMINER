@@ -97,6 +97,19 @@ export function remainingCap(totalMined: number): number {
   return Math.max(0, GAME.perWalletCap - totalMined);
 }
 
+/**
+ * Sisa pool mining global EFEKTIF — token yang dibakar untuk upgrade
+ * Mining Power didaur ulang kembali ke pool 70.000.000, jadi tidak ada
+ * token yang terbakar sia-sia:
+ *   efektif = miningPool − totalDitambang + totalDidaurUlang
+ * Diclamp ke [0, miningPool]. Catatan: cap pribadi 7.000/wallet tetap
+ * dihitung dari totalMined (tidak pernah berkurang) — daur ulang hanya
+ * menambah ketersediaan pool untuk wallet lain, bukan mengisi ulang cap.
+ */
+export function effectivePoolRemaining(globalMined: number, totalRecycled: number): number {
+  return Math.max(0, Math.min(TOKEN.miningPool, TOKEN.miningPool - globalMined + Math.max(0, totalRecycled)));
+}
+
 /** Clamp jumlah reward agar totalMined tidak melampaui cap 7.000 */
 export function clampToCap(totalMined: number, amount: number): number {
   return Math.max(0, Math.min(amount, remainingCap(totalMined)));

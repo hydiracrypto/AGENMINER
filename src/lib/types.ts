@@ -63,7 +63,8 @@ export interface GlobalStats {
   totalSupply: number;
   miningPool: number;
   totalMined: number;
-  poolRemaining: number;
+  poolRemaining: number; // sisa pool EFEKTIF = 70M − ditambang + daur ulang upgrade
+  poolRecycled: number; // total token bakaran upgrade yang kembali ke pool 70M
   totalMiners: number;
   totalMines: number;
   chainName: string;

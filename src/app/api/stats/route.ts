@@ -1,7 +1,7 @@
 // GET /api/stats — Statistik global token, mining & likuiditas PancakeSwap
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { TOKEN, WITHDRAW, PANCAKESWAP } from "@/lib/game-config";
+import { TOKEN, WITHDRAW, PANCAKESWAP, effectivePoolRemaining } from "@/lib/game-config";
 import type { GlobalStats } from "@/lib/types";
 
 export async function GET(req: NextRequest) {
@@ -11,19 +11,23 @@ export async function GET(req: NextRequest) {
     console.log(`[stats] ${new Date().toISOString()} MOBILE-UA="${ua.slice(0, 90)}"`);
   }
   try {
-    const [minedAgg, minerCount, mineCount, liqAgg] = await Promise.all([
+    const [minedAgg, minerCount, mineCount, liqAgg, upAgg] = await Promise.all([
       db.user.aggregate({ _sum: { totalMined: true } }),
       db.user.count(),
       db.mineLog.count(),
       db.liquidityLog.aggregate({ _sum: { amount: true } }),
+      db.upgradeLog.aggregate({ _sum: { cost: true } }),
     ]);
 
-    const totalMined = minedAgg._sum.totalMined ?? 0;
+    const totalMined = Math.round((minedAgg._sum.totalMined ?? 0) * 100) / 100;
+    const poolRecycled = Math.round((upAgg._sum.cost ?? 0) * 100) / 100;
     const stats: GlobalStats = {
       totalSupply: TOKEN.totalSupply,
       miningPool: TOKEN.miningPool,
-      totalMined: Math.round(totalMined * 100) / 100,
-      poolRemaining: Math.max(0, TOKEN.miningPool - Math.round(totalMined * 100) / 100),
+      totalMined,
+      // Sisa pool EFEKTIF: bakaran upgrade Mining Power didaur ulang ke pool 70M
+      poolRemaining: Math.round(effectivePoolRemaining(totalMined, poolRecycled) * 100) / 100,
+      poolRecycled,
       totalMiners: minerCount,
       totalMines: mineCount,
       chainName: TOKEN.chainName,

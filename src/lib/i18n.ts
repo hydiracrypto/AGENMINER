@@ -63,6 +63,7 @@ const ZH = {
   poolStatsTitle: "挖矿池统计",
   minedOut: "已挖出",
   remainingLabel: "剩余",
+  poolRecycledLabel: "升级燃烧已回流矿池 ♻️",
   // ── Mine errors ──
   errPromptShort: "提示词至少需要 {n} 个字符 — 写一个有创意的挖矿点子！",
   errPromptLong: "提示词最多 {n} 个字符。",
@@ -259,6 +260,7 @@ const EN: Record<keyof typeof ZH, string> = {
   poolStatsTitle: "Mining Pool Stats",
   minedOut: "Mined",
   remainingLabel: "Remaining",
+  poolRecycledLabel: "Upgrade burn recycled to pool ♻️",
   // ── Mine errors ──
   errPromptShort: "Prompt must be at least {n} characters — write a creative mining idea!",
   errPromptLong: "Prompt must be at most {n} characters.",

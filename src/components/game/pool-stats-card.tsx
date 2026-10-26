@@ -98,6 +98,17 @@ export default function PoolStatsCard({ refreshKey = 0 }: { refreshKey?: number 
           </p>
         </div>
       </div>
+
+      {/* Daur ulang: token bakaran upgrade kembali ke pool 70M — tidak ada yang terbakar sia-sia */}
+      {!!stats?.poolRecycled && stats.poolRecycled > 0 && (
+        <div className="mt-2.5 flex items-center justify-between rounded-xl border border-[#20B26C]/30 bg-[#20B26C]/5 px-3.5 py-2.5">
+          <p className="text-[10px] text-[#848E9C]">{t("poolRecycledLabel")}</p>
+          <p className="text-sm font-extrabold tabular-nums text-[#20B26C]">
+            +{fmtNum(stats.poolRecycled, 2, lang)}{" "}
+            <span className="text-[10px] font-semibold text-[#848E9C]">{TOKEN.symbol}</span>
+          </p>
+        </div>
+      )}
     </div>
   );
 }
