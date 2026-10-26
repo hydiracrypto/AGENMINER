@@ -429,3 +429,16 @@ Stage Summary:
 - Username kini MENGIKUTI Binance Agent ID asli pemilik wallet (per-wallet, via CLI resmi) — bukan nama acak. Wallet user tampil sebagai "everhand.ai" (sesuai kartu Agent ID di screenshot).
 - Red error pasca-deploy = stale cached HTML memanggil path API lama; ditangani no-store di "/" + saran buka ulang link preview terbaru. Bukti: percobaan user 03:47 sukses tanpa perubahan server.
 - Sesi login segar diserahkan ke user (link uni-qr + pairing code).
+
+---
+Task ID: 16
+Agent: main (Z.ai)
+Task: "Hapus semua berkas file yang tidak berguna seperti bekas riwayat download image dan lainnya"
+
+Work Log:
+- Inventaris lengkap: download/ (90 screenshot E2E lama v3-v15 + screenshot-* Oct 24, ±13MB), upload/ (23 screenshot HP user dari laporan bug lama, ±5.5MB), scripts/ (11 skrip one-off: crop/analyze screenshot, verify_*.sh, backfill, check-ref, wipe-users [berbahaya], patch-i18n), tool-results/ (9 dump output tool Oct 25), research/ (sisa eksperimen SDK v6: w3w-* sign-client, llms.txt 174KB, docs aw-*), tsconfig.tsbuildinfo (build artifact).
+- DIHAPUS semuanya (rm aman, sasaran eksplisit). DIPERTAHANKAN: scripts/sync-agent-id.ts (utilitas Task 15, terdokumentasi), dev.log (log server aktif), .next (build cache dipakai server berjalan), tests/ + contracts/ + examples/ + mini-services/ (scaffold platform), db/, worklog.md, .git.
+- Verifikasi pasca-hapus: HOME 200, STATS 200, leaderboard tetap "everhand.ai"; grep src/ → tidak ada referensi ke folder terhapus.
+
+Stage Summary:
+- Proyek bersih dari ±120 berkas sampah (±19MB); folder download/upload kosong dan siap dipakai deliverable berikutnya; hanya sync-agent-id.ts yang tersisa di scripts/.
