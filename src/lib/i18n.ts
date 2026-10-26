@@ -120,7 +120,7 @@ const ZH = {
   // ── Rank tab ──
   yourRank: "我的排名",
   totalMined: "累计挖矿",
-  top50: "挖矿前 50 名",
+  top50: "挖矿前 100 名",
   refresh: "刷新",
   loadingRank: "排名加载中...",
   emptyRank: "还没有矿工。来成为第一个挖 {sym} 的人！",
@@ -217,7 +217,7 @@ const EN: Record<keyof typeof ZH, string> = {
   featLeaderboard: "Leaderboard",
   featMiningDesc: "Write a creative mining prompt — agentic AI scores it and crystallizes AGENMINER from the pool.",
   featReferralDesc: "Earn 500 instantly per friend invited plus a 5% lifetime commission on their mining rewards.",
-  featLeaderboardDesc: "Compete with miners worldwide, climb the Top 50 and watch the pool progress live.",
+  featLeaderboardDesc: "Compete with miners worldwide, climb the Top 100 and watch the pool progress live.",
   signInWallet: "Sign in to my Agentic Wallet",
   loginFooter:
     "Secure connection via your Web3 wallet on BNB Smart Chain. Rewards are mined with AI prompts — {s}s cooldown per mining session.",
@@ -310,7 +310,7 @@ const EN: Record<keyof typeof ZH, string> = {
   // ── Rank tab ──
   yourRank: "Your Rank",
   totalMined: "Total Mined",
-  top50: "Top 50 Miners",
+  top50: "Top 100 Miners",
   refresh: "Refresh",
   loadingRank: "Loading rankings...",
   emptyRank: "No miners yet. Be the first to mine {sym}!",

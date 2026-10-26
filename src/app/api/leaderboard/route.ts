@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
 
     const top = await db.user.findMany({
       orderBy: [{ totalMined: "desc" }, { createdAt: "asc" }],
-      take: 50,
+      take: 100,
       select: {
         walletAddress: true,
         username: true,

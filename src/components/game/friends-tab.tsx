@@ -63,7 +63,7 @@ export default function FriendsTab() {
           </div>
           <div className="rounded-xl bg-[#0B0E11] border border-[#2B3139] p-3.5">
             <p className="text-[10px] text-[#848E9C] uppercase tracking-wide">{t("inviteCode")}</p>
-            <p className="text-lg font-extrabold text-[#F0B90B] tracking-widest mt-0.5">{user.refCode}</p>
+            <p className="text-sm font-extrabold text-[#F0B90B] tracking-wide mt-0.5 break-all leading-snug">{user.refCode}</p>
             <p className="mt-1 text-[10px] leading-snug text-[#848E9C]">{t("agentIdHint")}</p>
           </div>
         </div>
@@ -88,7 +88,7 @@ export default function FriendsTab() {
           <Button
             onClick={() => copy(user.refCode, "code")}
             variant="outline"
-            className="flex-1 h-11 rounded-xl border-[#2B3139] bg-[#0B0E11] text-sm font-bold hover:bg-[#1E2329]"
+            className="flex-1 h-11 rounded-xl border-[#2B3139] bg-[#0B0E11] text-xs font-bold hover:bg-[#1E2329] whitespace-nowrap truncate px-2"
           >
             {copied === "code" ? <Check className="mr-1.5 h-4 w-4 text-[#20B26C]" /> : <Copy className="mr-1.5 h-4 w-4" />}
             {copied === "code" ? t("copied") : t("copyCode", { code: user.refCode })}
