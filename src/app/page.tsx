@@ -48,7 +48,15 @@ export default function Page() {
         const res = await api.getUser(session.address);
         setUser(res.user);
       } catch {
-        clearSession();
+        // Akun tidak ada lagi di server (mis. DB production ter-reset saat publish)
+        // → daftar ulang secara diam-diam agar sesi tidak mati; tampilan mulai
+        // dari saldo 0 seperti akun baru. Gagal juga → bersihkan sesi (login ulang).
+        try {
+          const res = await api.login(session.address);
+          setUser(res.user);
+        } catch {
+          clearSession();
+        }
       } finally {
         setBooting(false);
       }

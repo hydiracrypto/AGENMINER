@@ -26,7 +26,7 @@ import type { ReferralsResult } from "@/lib/types";
 export default function FriendsTab() {
   const user = useGameStore((s) => s.user);
   const { t, lang } = useT();
-  const [copied, setCopied] = useState<"code" | "link" | null>(null);
+  const [copied, setCopied] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
 
   // ── Daftar referral (paginasi 20/halaman) ──
@@ -38,30 +38,42 @@ export default function FriendsTab() {
   const shareLink =
     typeof window !== "undefined" && user ? `${window.location.origin}/?ref=${user.refCode}` : "";
 
-  const loadReferrals = useCallback(async (address: string, page: number) => {
-    setRefLoading(true);
-    setRefError(null);
-    try {
-      const data = await api.referrals(address, page);
-      setRefData(data);
-      setRefPage(data.page);
-    } catch {
-      setRefError(t("errMineFail"));
-    } finally {
-      setRefLoading(false);
-    }
-  }, [t]);
+  const loadReferrals = useCallback(
+    async (address: string, page: number) => {
+      setRefLoading(true);
+      setRefError(null);
+      try {
+        const data = await api.referrals(address, page);
+        setRefData(data);
+        setRefPage(data.page);
+      } catch (e) {
+        // 404 = akun belum terdaftar di server (mis. DB production di-reset saat
+        // publish) → perlakukan sebagai tim kosong, BUKAN error.
+        const status = (e as { status?: number } | null)?.status;
+        if (status === 404) {
+          setRefData({ items: [], total: 0, page: 1, totalPages: 1, limit: 20 });
+          setRefPage(1);
+        } else {
+          // Error lain → pesan jujur + tombol coba lagi (bukan "Mining failed")
+          setRefError(t("refLoadFail"));
+        }
+      } finally {
+        setRefLoading(false);
+      }
+    },
+    [t]
+  );
 
   useEffect(() => {
     if (!user) return;
     void loadReferrals(user.walletAddress, 1);
   }, [user, loadReferrals]);
 
-  const copy = useCallback(async (text: string, which: "code" | "link") => {
+  const copy = useCallback(async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      setCopied(which);
-      setTimeout(() => setCopied(null), 1600);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
     } catch {
       /* clipboard tidak tersedia */
     }
@@ -150,7 +162,7 @@ export default function FriendsTab() {
           </div>
         </div>
 
-        {/* Bagikan — link + Copy Code + Share ke semua sosmed */}
+        {/* Bagikan — link + Share ke semua sosmed (permintaan owner: tanpa tombol Copy Code) */}
         <div className="am-card rounded-2xl border border-[#2B3139] bg-[#181A20] p-5 space-y-3">
           <h3 className="text-sm font-bold flex items-center gap-1.5">
             <Share2 className="h-4 w-4 text-[#F0B90B]" /> {t("shareTitle")}
@@ -158,36 +170,26 @@ export default function FriendsTab() {
           <div className="flex items-center gap-2 rounded-xl bg-[#0B0E11] border border-[#2B3139] px-3 py-2.5">
             <span className="flex-1 truncate text-xs font-mono text-[#848E9C]">{shareLink || "..."}</span>
             <button
-              onClick={() => copy(shareLink, "link")}
+              onClick={() => copy(shareLink)}
               className="text-[#848E9C] hover:text-[#F0B90B] transition-colors"
               aria-label="Salin tautan"
             >
-              {copied === "link" ? <Check className="h-4 w-4 text-[#20B26C]" /> : <Copy className="h-4 w-4" />}
+              {copied ? <Check className="h-4 w-4 text-[#20B26C]" /> : <Copy className="h-4 w-4" />}
             </button>
           </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={() => copy(user.refCode, "code")}
-              variant="outline"
-              className="flex-1 h-11 rounded-xl border-[#2B3139] bg-[#0B0E11] text-xs font-bold hover:bg-[#1E2329] whitespace-nowrap truncate px-2"
-            >
-              {copied === "code" ? <Check className="mr-1.5 h-4 w-4 text-[#20B26C]" /> : <Copy className="mr-1.5 h-4 w-4" />}
-              {copied === "code" ? t("copied") : t("copyCode", { code: user.refCode })}
-            </Button>
-            <Button
-              onClick={() => {
-                // Perangkat dgn Web Share API -> share sheet OS; selain itu -> menu sosmed
-                if (typeof navigator !== "undefined" && "share" in navigator) {
-                  void share();
-                } else {
-                  setShareOpen((v) => !v);
-                }
-              }}
-              className="flex-1 h-11 rounded-xl bg-gradient-to-r from-[#F8D33A] to-[#F0B90B] font-bold text-[#0B0E11] hover:opacity-90"
-            >
-              <Share2 className="mr-1.5 h-4 w-4" /> {t("share")}
-            </Button>
-          </div>
+          <Button
+            onClick={() => {
+              // Perangkat dgn Web Share API -> share sheet OS; selain itu -> menu sosmed
+              if (typeof navigator !== "undefined" && "share" in navigator) {
+                void share();
+              } else {
+                setShareOpen((v) => !v);
+              }
+            }}
+            className="w-full h-11 rounded-xl bg-gradient-to-r from-[#F8D33A] to-[#F0B90B] font-bold text-[#0B0E11] hover:opacity-90"
+          >
+            <Share2 className="mr-1.5 h-4 w-4" /> {t("share")}
+          </Button>
 
           {/* Menu share sosmed — X, Telegram, WhatsApp, Facebook (+ native share) */}
           {shareOpen && (
@@ -239,9 +241,15 @@ export default function FriendsTab() {
         </div>
 
         {refError && (
-          <p className="mt-3 rounded-xl border border-[#F6465D]/40 bg-[#F6465D]/10 p-3 text-xs text-[#F6465D]">
-            {refError}
-          </p>
+          <div className="mt-3 flex items-center justify-between gap-3 rounded-xl border border-[#F6465D]/40 bg-[#F6465D]/10 p-3">
+            <span className="text-xs text-[#F6465D]">{refError}</span>
+            <button
+              onClick={() => void loadReferrals(user.walletAddress, refPage)}
+              className="shrink-0 rounded-lg border border-[#F6465D]/50 px-2.5 py-1.5 text-[11px] font-bold text-[#F6465D] transition-colors hover:bg-[#F6465D]/15"
+            >
+              {t("retry")}
+            </button>
+          </div>
         )}
 
         {refLoading && !refData && (
