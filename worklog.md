@@ -622,3 +622,20 @@ Stage Summary:
 - Tidak ada token terbakar sia-sia: burn upgrade → kredit pool 70M untuk wallet lain
 - Cap 7.000/wallet tetap ketat; pool efektif dipakai di mine guard, clamp reward, dan stats
 - Pending: deploy kontrak + re-publish production
+
+---
+Task ID: 25
+Agent: main (Z.ai)
+Task: Cek screenshot everhand.ai — "5,907/7,000 left to mine", apakah wallet bisa dapat 7.000 balance?
+
+Work Log:
+- Verifikasi matematika screenshot: semua KONSISTEN (totalMined 1.093; capLeft 5.907 = 7.000−1.093; balance 33 = 1.093−1.060 bakaran upgrade; recycled +1.060 cocok; pool 69.999.967 = 70M−1.093+1.060)
+- Kesimpulan: TIDAK ada bug hitung; wallet TIDAK bisa capai 7.000 balance by design — max saldo = 33 + 5.907 = 5.940 (1.060 terbakar utk Power x3, didaur ulang ke pool)
+- Kesalahan sebenarnya = label UI ambigu: "5,907 / 7,000 left to mine" terbaca sbg progress
+- Fix: capLeft kini "Mined {m} / 7,000 • {n} left" (zh+en) + catatan capMaxNote (bakaran recycle ke pool bukan kembali ke saldo; ceiling = saldo + sisa cap)
+- TSC bersih; commit fcd2e57 + push (41ba179..fcd2e57)
+
+Stage Summary:
+- Ekonomi & akuntansi terbukti benar dari data live user
+- Label cap kini eksplisit dua arah + note batas saldo
+- Pending: deploy kontrak + re-publish production
