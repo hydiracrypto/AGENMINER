@@ -7,6 +7,11 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   reactStrictMode: false,
+  // Bawa vendor CLI baw (spawn dinamis tidak ter-trace otomatis oleh Next)
+  // ke dalam build standalone → deployment tetap bisa menjalankan sign-in.
+  outputFileTracingIncludes: {
+    "/api/**/*": ["./vendor/**"],
+  },
   async headers() {
     return [
       {

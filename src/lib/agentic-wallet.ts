@@ -19,24 +19,58 @@ import type { PublicUser } from "./types";
 
 // ---------- Resolusi binary baw ----------
 
-function resolveBawBin(): string {
-  const candidates = [
-    process.env.BAW_BIN,
-    // 1) Project-local (persisten via package.json — survive env reset/restart)
+export interface BawLaunch {
+  /** argv[0] — process.execPath utk file JS vendor, atau path binary langsung */
+  cmd: string;
+  /** Argumen pendahulu (path JS entry saat dijalankan via execPath) */
+  prefixArgs: string[];
+  /** Sumber resolusi — untuk logging/debug */
+  src: string;
+}
+
+/**
+ * Resolusi CARA MENJALANKAN CLI baw — tahan deployment.
+ * Masalah empiris (agenminer.space-z.ai): build production standalone TIDAK
+ * menyertakan @binance/agentic-wallet (spawn dinamis tidak ter-trace oleh NFT)
+ * → spawn("baw") gagal → "Couldn't reach the Binance network".
+ * Solusi: package di-VENDOR ke repo (vendor/agentic-wallet, ikut ter-commit &
+ * ter-deploy) dan dijalankan via process.execPath — runtime server pasti ada.
+ */
+function resolveBawLaunch(): BawLaunch {
+  // 0) Override eksplisit (binary executable langsung)
+  const envBin = process.env.BAW_BIN;
+  if (envBin && existsSync(envBin)) {
+    return { cmd: envBin, prefixArgs: [], src: "env:BAW_BIN" };
+  }
+  // 1) Kandidat file JS entry CLI — dijalankan via process.execPath
+  //    (node/bun yang menjalankan server; CLI = JS murni + deps nested)
+  const jsCandidates = [
+    // Vendor dalam repo (cwd project root / dev)
+    `${process.cwd()}/vendor/agentic-wallet/dist/index.js`,
+    // cwd standalone build (.next/standalone) → project root satu level di atas
+    `${process.cwd()}/../vendor/agentic-wallet/dist/index.js`,
+    // Path absolut sandbox (dev)
+    "/home/z/my-project/vendor/agentic-wallet/dist/index.js",
+    // Instalasi lokal via bun add (fallback dev)
+    "/home/z/my-project/node_modules/@binance/agentic-wallet/dist/index.js",
+    `${process.cwd()}/node_modules/@binance/agentic-wallet/dist/index.js`,
+  ];
+  for (const js of jsCandidates) {
+    if (existsSync(js)) return { cmd: process.execPath, prefixArgs: [js], src: js };
+  }
+  // 2) Shim .bin / global — spawn langsung (butuh shebang + node di PATH)
+  const binCandidates = [
     "/home/z/my-project/node_modules/.bin/baw",
-    // 2) CWD-relative (kalau project dipindah)
     `${process.cwd()}/node_modules/.bin/baw`,
     "/home/z/.npm-global/bin/baw",
     "/usr/local/bin/baw",
     "/usr/bin/baw",
-  ].filter(Boolean) as string[];
-  for (const c of candidates) if (existsSync(c)) return c;
-  return "baw";
-}
-
-/** Lazy resolution setiap pemanggilan (existsSync sangat murah) — survive install ulang saat server jalan */
-function bawBin(): string {
-  return resolveBawBin();
+  ];
+  for (const b of binCandidates) {
+    if (existsSync(b)) return { cmd: b, prefixArgs: [], src: b };
+  }
+  // 3) Harap PATH sistem
+  return { cmd: "baw", prefixArgs: [], src: "PATH" };
 }
 
 interface BawJson {
@@ -46,6 +80,9 @@ interface BawJson {
 }
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/** Log sumber launcher sekali per proses — memudahkan diagnosis deployment */
+let bawSrcLogged = false;
 
 /** Jalankan perintah baw sampai selesai (async, tidak memblokir event loop) */
 function runBaw(args: string[], timeoutMs = 30_000): Promise<BawJson> {
@@ -58,7 +95,12 @@ function runBaw(args: string[], timeoutMs = 30_000): Promise<BawJson> {
       }
     };
     try {
-      const child = spawn(bawBin(), args, {
+      const launch = resolveBawLaunch();
+      if (!bawSrcLogged) {
+        bawSrcLogged = true;
+        console.log(`[baw] launcher="${launch.src}" prefix=${JSON.stringify(launch.prefixArgs)}`);
+      }
+      const child = spawn(launch.cmd, [...launch.prefixArgs, ...args], {
         env: { ...process.env, HOME: process.env.HOME ?? "/home/z" },
         stdio: ["ignore", "pipe", "pipe"],
       });
@@ -224,7 +266,8 @@ export async function startAgenticSignIn(
   let verifyChild: ReturnType<typeof spawn> | null = null;
   const verify = new Promise<{ ok: boolean; message?: string }>((resolve) => {
     try {
-      const child = spawn(bawBin(), ["auth", "verify", "--qrCodeId", qrCodeId, "--json"], {
+      const launch = resolveBawLaunch();
+      const child = spawn(launch.cmd, [...launch.prefixArgs, "auth", "verify", "--qrCodeId", qrCodeId, "--json"], {
         env: { ...process.env, HOME: process.env.HOME ?? "/home/z" },
         stdio: ["ignore", "pipe", "pipe"],
       });
