@@ -2,17 +2,19 @@
 // AGENTIC MINER — Server helpers untuk user
 // ============================================
 
-import { GAME, todayStr, yesterdayStr } from "./game-config";
+import { effectiveCooldownMs, remainingCap, todayStr, yesterdayStr } from "./game-config";
 import type { User } from "@prisma/client";
 import type { PublicUser } from "./types";
 
 export function toPublicUser(u: User): PublicUser {
   const now = Date.now();
   const canCheckin = u.lastCheckin !== todayStr();
-  const nextMineAt = u.lastMineAt ? u.lastMineAt.getTime() + GAME.cooldownMs : null;
+  const cooldownMs = effectiveCooldownMs(u.verifiedAgent);
+  const nextMineAt = u.lastMineAt ? u.lastMineAt.getTime() + cooldownMs : null;
   return {
     walletAddress: u.walletAddress,
     agentId: u.agentId,
+    verifiedAgent: u.verifiedAgent,
     username: u.username ?? u.agentId ?? `Miner${u.refCode.slice(0, 4)}`,
     avatar: u.avatar,
     balance: u.balance,
@@ -23,6 +25,8 @@ export function toPublicUser(u: User): PublicUser {
     refEarnings: u.refEarnings,
     canCheckin,
     nextMineAt: nextMineAt && nextMineAt > now ? nextMineAt : null,
+    cooldownMs,
+    capRemaining: remainingCap(u.totalMined),
   };
 }
 

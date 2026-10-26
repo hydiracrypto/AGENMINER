@@ -1,7 +1,7 @@
 // POST /api/boost — Upgrade mining power & check-in harian
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { GAME, TOKEN, computeCheckinReward, isValidEvmAddress, todayStr, upgradeCost } from "@/lib/game-config";
+import { GAME, TOKEN, clampToCap, computeCheckinReward, isValidEvmAddress, todayStr, upgradeCost } from "@/lib/game-config";
 import { nextStreak, toPublicUser } from "@/lib/user-utils";
 
 const TOKEN_SYMBOL = TOKEN.symbol;
@@ -51,12 +51,14 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "You already checked in today. Come back tomorrow!", errorKey: "already_checkin" }, { status: 400 });
       }
       const newStreak = nextStreak(user);
-      const reward = computeCheckinReward(user.miningPower, newStreak);
+      // Check-in ikut cap lifetime 7.000 per wallet & akuntansi pool 70M
+      const reward = clampToCap(user.totalMined, computeCheckinReward(user.miningPower, newStreak));
       const updated = await db.$transaction(async (tx) => {
         const u = await tx.user.update({
           where: { id: user.id },
           data: {
             balance: { increment: reward },
+            totalMined: { increment: reward },
             streak: newStreak,
             lastCheckin: today,
             lastActiveDate: today,
@@ -64,9 +66,10 @@ export async function POST(req: NextRequest) {
         });
         return u;
       });
+      const capNote = user.totalMined >= GAME.perWalletCap ? " (cap 7,000 reached — no more rewards)" : "";
       return NextResponse.json({
         user: toPublicUser(updated),
-        message: `🎁 Check-in day ${newStreak}: +${reward} ${TOKEN_SYMBOL}!`,
+        message: `🎁 Check-in day ${newStreak}: +${reward} ${TOKEN_SYMBOL}!${capNote}`,
         reward,
         streak: newStreak,
       });

@@ -70,6 +70,9 @@ const ZH = {
   errDuplicate: "这条提示词你最近用过了。换一个更新颖的点子吧！",
   errPoolEmpty: "矿池已挖完！感谢参与 AGENTIC MINER。",
   errMineFail: "挖矿失败，请重试。",
+  errMiningCap: "已达到钱包挖矿上限 — 每个钱包最多 7,000 AGENMINER。感谢您的参与！",
+  capLeft: "剩余可挖 {n} / 7,000",
+  noAgentHint: "未验证 Agent ID：冷却 5 分钟、奖励 50% — 连接 Binance Agentic Wallet 即可恢复完整速度",
   // ── Reward modal ──
   miningResult: "{sym} 挖矿结果",
   minedToBalance: "成功挖入你的游戏余额",
@@ -260,6 +263,9 @@ const EN: Record<keyof typeof ZH, string> = {
   errDuplicate: "You used this prompt recently. Try a fresh, more creative idea!",
   errPoolEmpty: "The mining pool is depleted! Thank you for being part of AGENTIC MINER.",
   errMineFail: "Mining failed, please try again.",
+  errMiningCap: "Wallet mining cap reached — max 7,000 AGENMINER per wallet. Thank you for mining!",
+  capLeft: "{n} / 7,000 left to mine",
+  noAgentHint: "No verified Agent ID: 5-min cooldown & 50% rewards — connect your Binance Agentic Wallet to mine at full speed",
   // ── Reward modal ──
   miningResult: "{sym} Mining Result",
   minedToBalance: "Mined successfully to your game balance",

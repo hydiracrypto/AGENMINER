@@ -3,7 +3,7 @@
 // ============================================
 
 import { db } from "@/lib/db";
-import { GAME } from "@/lib/game-config";
+import { GAME, clampToCap } from "@/lib/game-config";
 import { generateAgentId } from "@/lib/user-utils";
 import type { User } from "@prisma/client";
 
@@ -34,23 +34,27 @@ export async function registerUser(
     const wantRef = agentName ? agentName.toUpperCase() : null;
     const needUsername = agentName && agentName !== existing.username;
     const needRef = wantRef && wantRef !== existing.refCode;
-    if (needUsername || needRef) {
-      const data: { username?: string; agentId?: string; refCode?: string } = {};
+    // Upgrade ke verified: wallet login biasa (tanpa Agent ID) yang kini
+    // pairing via Binance Agentic Wallet → dapat kecepatan mining penuh
+    const needVerify = Boolean(agentName) && !existing.verifiedAgent;
+    if (needUsername || needRef || needVerify) {
+      const data: { username?: string; agentId?: string; refCode?: string; verifiedAgent?: boolean } = {};
       if (needUsername) {
         data.username = agentName;
         data.agentId = agentName;
       }
       if (needRef) data.refCode = wantRef;
+      if (needVerify) data.verifiedAgent = true;
       try {
         return await db.user.update({ where: { id: existing.id }, data });
       } catch {
         // agentId/refCode @unique bentrok → coba sinkron parsial (username saja,
         // lalu refCode saja) agar perubahan yang mungkin tetap diterapkan
         try {
-          if (needUsername) {
+          if (needUsername || needVerify) {
             return await db.user.update({
               where: { id: existing.id },
-              data: { username: agentName, agentId: agentName },
+              data: { username: agentName ?? existing.username, agentId: agentName ?? existing.agentId, verifiedAgent: true },
             });
           }
         } catch {
@@ -79,6 +83,9 @@ export async function registerUser(
           walletAddress: addr,
           agentId,
           refCode: agentId.toUpperCase(),
+          // verifiedAgent=true hanya bila Agent ID ASLI Binance (via QR pairing).
+          // Login wallet biasa → false → cooldown 5 menit + reward 50% (fair).
+          verifiedAgent: Boolean(agentName),
         },
       });
     } catch {
@@ -87,22 +94,29 @@ export async function registerUser(
   }
   if (!created) throw new Error("Failed to create account");
 
-  // Proses referral: bonus langsung ke pengundang
+  // Proses referral: bonus langsung ke pengundang — ikut cap 7.000 & akuntansi pool
   if (ref) {
     const referrer = await db.user.findUnique({ where: { refCode: ref } });
     if (referrer && referrer.id !== created.id) {
+      const bonus = clampToCap(referrer.totalMined, GAME.referrerJoinBonus);
       await db.$transaction([
         db.user.update({
           where: { id: created.id },
           data: { referredById: referrer.id },
         }),
-        db.user.update({
-          where: { id: referrer.id },
-          data: {
-            balance: { increment: GAME.referrerJoinBonus },
-            refEarnings: { increment: GAME.referrerJoinBonus },
-          },
-        }),
+        // Pengundang sudah mencapai cap 7.000 → tetap ditautkan, tanpa bonus
+        ...(bonus > 0
+          ? [
+              db.user.update({
+                where: { id: referrer.id },
+                data: {
+                  balance: { increment: bonus },
+                  refEarnings: { increment: bonus },
+                  totalMined: { increment: bonus }, // konsumsi pool 70M
+                },
+              }),
+            ]
+          : []),
       ]);
     }
   }

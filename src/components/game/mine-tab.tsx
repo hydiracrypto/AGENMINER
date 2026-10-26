@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Pickaxe, Loader2, Clock, Shuffle, Sparkles, Flame, Zap } from "lucide-react";
+import { Pickaxe, Loader2, Clock, Shuffle, Sparkles, Flame, Zap, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { GAME, TOKEN, computeReward, fmtNum, randomExamples, streakMultiplier } from "@/lib/game-config";
@@ -49,12 +49,14 @@ export default function MineTab() {
 
   const cooldownPct = useMemo(() => {
     if (cooling === null) return 0;
-    return Math.max(0, Math.min(1, 1 - cooling / GAME.cooldownMs));
-  }, [cooling]);
+    const total = user?.cooldownMs ?? GAME.cooldownMs;
+    return Math.max(0, Math.min(1, 1 - cooling / total));
+  }, [cooling, user?.cooldownMs]);
 
   const previewReward = useMemo(() => {
     if (!user) return 0;
-    return computeReward(60, user.miningPower, user.streak); // estimasi skor 60
+    const speedMult = user.verifiedAgent ? 1 : GAME.noAgentIdRewardMult;
+    return Math.round(computeReward(60, user.miningPower, user.streak) * speedMult); // estimasi skor 60
   }, [user]);
 
   const handleMine = useCallback(async () => {
@@ -86,6 +88,8 @@ export default function MineTab() {
         setError(t("errDuplicate"));
       } else if (e.errorKey === "pool_empty") {
         setError(t("errPoolEmpty"));
+      } else if (e.errorKey === "mining_cap") {
+        setError(t("errMiningCap"));
       } else {
         setError(e.message ?? t("errMineFail"));
       }
@@ -197,7 +201,16 @@ export default function MineTab() {
           <span className="flex items-center gap-1 rounded-full bg-[#181A20] border border-[#2B3139] px-3 py-1.5 text-[#848E9C]">
             {t("perMine", { n: fmtNum(previewReward, 2, lang), sym: TOKEN.symbol })}
           </span>
+          <span className="flex items-center gap-1 rounded-full bg-[#181A20] border border-[#2B3139] px-3 py-1.5 text-[#848E9C]">
+            <Target className="h-3 w-3 text-[#20B26C]" /> {t("capLeft", { n: fmtNum(user.capRemaining, 0, lang) })}
+          </span>
         </div>
+
+        {!user.verifiedAgent && (
+          <p className="mt-2 max-w-sm text-center text-[10px] leading-relaxed text-[#F0B90B]/75">
+            🐢 {t("noAgentHint")}
+          </p>
+        )}
       </div>
       </div>
 

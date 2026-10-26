@@ -5,6 +5,7 @@
 export interface PublicUser {
   walletAddress: string;
   agentId: string | null; // Binance Agent ID = username & invite code
+  verifiedAgent: boolean; // true = Agent ID ASLI Binance (mining kecepatan penuh)
   username: string;
   avatar: string;
   balance: number;
@@ -15,6 +16,8 @@ export interface PublicUser {
   refEarnings: number;
   canCheckin: boolean;
   nextMineAt: number | null; // epoch ms, null = bisa mining
+  cooldownMs: number; // cooldown efektif wallet ini (60s / 300s)
+  capRemaining: number; // sisa jatah lifetime terhadap cap 7.000
 }
 
 export interface MineResult {

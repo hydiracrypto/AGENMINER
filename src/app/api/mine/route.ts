@@ -1,7 +1,7 @@
 // POST /api/mine — Tambang AGENMINER via prompt AI (inti game)
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { GAME, TOKEN, computeReward, isValidEvmAddress, todayStr } from "@/lib/game-config";
+import { GAME, TOKEN, clampToCap, computeReward, effectiveCooldownMs, isValidEvmAddress, remainingCap, todayStr } from "@/lib/game-config";
 import { evaluateMiningPrompt } from "@/lib/ai-engine";
 import { nextStreak, toPublicUser } from "@/lib/user-utils";
 
@@ -33,10 +33,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Account not found, please sign in again", errorKey: "account_missing" }, { status: 404 });
     }
 
-    // ── Cek cooldown ──
+    // ── Cap lifetime 7.000 AGENMINER per wallet (semua sumber reward) ──
+    const capRemaining = remainingCap(user.totalMined);
+    if (capRemaining <= 0) {
+      return NextResponse.json(
+        {
+          error: `Wallet mining cap reached — max ${GAME.perWalletCap.toLocaleString("en-US")} ${TOKEN.symbol} per wallet. Thank you for mining!`,
+          errorKey: "mining_cap",
+          capRemaining: 0,
+        },
+        { status: 403 }
+      );
+    }
+
+    // ── Cek cooldown (60 dtk dgn Agent ID Binance / 5 mnt tanpa Agent ID) ──
+    const cooldownMs = effectiveCooldownMs(user.verifiedAgent);
     const now = Date.now();
     if (user.lastMineAt) {
-      const readyAt = user.lastMineAt.getTime() + GAME.cooldownMs;
+      const readyAt = user.lastMineAt.getTime() + cooldownMs;
       if (now < readyAt) {
         return NextResponse.json(
           { error: "Rig is still cooling. Wait a moment!", errorKey: "cooldown", remainingMs: readyAt - now },
@@ -76,14 +90,22 @@ export async function POST(req: NextRequest) {
     // ── Update streak harian ──
     const newStreak = nextStreak(user);
 
-    // ── Hitung reward ──
-    let reward = computeReward(verdict.score, user.miningPower, newStreak);
-    // Jangan biarkan reward melebihi sisa pool
+    // ── Hitung reward (50% speed bila wallet tanpa Agent ID Binance) ──
+    const speedMult = user.verifiedAgent ? 1 : GAME.noAgentIdRewardMult;
+    let reward = Math.round(computeReward(verdict.score, user.miningPower, newStreak) * speedMult);
+    // Jangan biarkan reward melebihi sisa pool & sisa cap 7.000 wallet
     const poolRemaining = TOKEN.miningPool - globalMined;
     if (reward > poolRemaining) reward = Math.max(0, Math.floor(poolRemaining));
+    reward = Math.min(reward, capRemaining);
 
-    // ── Komisi referral 5% ke pengundang ──
-    const refCommission = user.referredById ? Math.round(reward * GAME.refCommission * 100) / 100 : 0;
+    // ── Komisi referral 2% ke pengundang — ikut cap 7.000 & akuntansi pool ──
+    let refCommission = 0;
+    if (user.referredById) {
+      const referrer = await db.user.findUnique({ where: { id: user.referredById } });
+      if (referrer) {
+        refCommission = clampToCap(referrer.totalMined, Math.round(reward * GAME.refCommission * 100) / 100);
+      }
+    }
 
     // ── Simpan ke database (transaksi) ──
     const mineLog = await db.$transaction(async (tx) => {
@@ -112,6 +134,7 @@ export async function POST(req: NextRequest) {
           data: {
             balance: { increment: refCommission },
             refEarnings: { increment: refCommission },
+            totalMined: { increment: refCommission }, // konsumsi pool 70M (dulu bocor di luar pool!)
           },
         });
       }
@@ -126,6 +149,8 @@ export async function POST(req: NextRequest) {
       summary: verdict.summary,
       response: verdict.response,
       refCommission,
+      capRemaining: remainingCap(updated!.totalMined),
+      verifiedAgent: user.verifiedAgent,
       user: toPublicUser(updated!),
       logId: mineLog.id,
     });

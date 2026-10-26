@@ -46,20 +46,47 @@ export function splitWithdrawal(amount: number): { net: number; fee: number } {
   return { net, fee };
 }
 
+// ============================================
+// EKONOMI DISTRIBUSI ADIL (permintaan owner):
+// - Cap lifetime 7.000 AGENMINER per wallet utk SEMUA reward game
+//   (mining AI prompt + check-in + komisi referral + bonus join).
+// - Pool 70.000.000 ÷ 7.000 = MAKSIMAL 10.000 holder full-cap →
+//   pool terjamin terbagi ke 7.000–10.000 wallet holder.
+// - Wallet TANPA Agent ID Binance asli (verifiedAgent=false):
+//   cooldown 5 menit + reward 50% → perolehan lebih lambat & adil.
+// ============================================
 export const GAME = {
-  cooldownMs: 60_000, // jeda antar mining: 60 detik
+  cooldownMs: 60_000, // jeda antar mining (wallet dgn Agent ID): 60 detik
   minPromptLen: 15,
   maxPromptLen: 500,
   baseReward: 25, // reward dasar per mining
   scoreMultiplier: 0.6, // bonus = skor AI (0-100) x 0.6
   streakBonusPerDay: 0.05, // +5% per hari streak
   maxStreakBonus: 0.5, // maksimal +50%
-  referrerJoinBonus: 500, // bonus undangan untuk pengundang
-  refCommission: 0.05, // komisi 5% dari reward pengundang
+  referrerJoinBonus: 500, // bonus undangan untuk pengundang (ikut cap 7.000)
+  refCommission: 0.02, // komisi 2% dari reward (diturunkan dr 5% agar pool tahan sampai 7.000-10.000 holder)
   checkinBaseReward: 100, // reward check-in harian dasar
   minWithdraw: 0, // TANPA minimal penarikan — tarik berapa pun!
   recentPromptLimit: 10, // cek duplikat 10 prompt terakhir
+  perWalletCap: 7_000, // cap lifetime reward per wallet (semua sumber reward)
+  noAgentIdCooldownMs: 300_000, // wallet TANPA Agent ID: cooldown 5 menit
+  noAgentIdRewardMult: 0.5, // wallet TANPA Agent ID: reward 50%
 } as const;
+
+/** Cooldown efektif per wallet: 60 dtk (verified Agent ID) / 5 mnt (tanpa) */
+export function effectiveCooldownMs(verifiedAgent: boolean): number {
+  return verifiedAgent ? GAME.cooldownMs : GAME.noAgentIdCooldownMs;
+}
+
+/** Sisa jatah lifetime wallet terhadap cap 7.000 */
+export function remainingCap(totalMined: number): number {
+  return Math.max(0, GAME.perWalletCap - totalMined);
+}
+
+/** Clamp jumlah reward agar totalMined tidak melampaui cap 7.000 */
+export function clampToCap(totalMined: number, amount: number): number {
+  return Math.max(0, Math.min(amount, remainingCap(totalMined)));
+}
 
 /** Biaya upgrade mining power ke level berikutnya */
 export function upgradeCost(currentPower: number): number {
