@@ -97,6 +97,16 @@ export default function LoginScreen() {
             </div>
           </div>
 
+          {/* Badge Powered by Binance Agentic AI */}
+          <div className="flex items-center gap-2 rounded-full border border-[#F0B90B]/35 bg-[#F0B90B]/10 px-4 py-1.5">
+            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 text-[#F0B90B]" fill="currentColor" aria-hidden>
+              <rect x="8.5" y="8.5" width="7" height="7" transform="rotate(45 12 12)" />
+              <rect x="1.5" y="9.5" width="5" height="5" transform="rotate(45 4 12)" />
+              <rect x="17.5" y="9.5" width="5" height="5" transform="rotate(45 20 12)" />
+            </svg>
+            <span className="text-xs font-semibold text-[#F0B90B]">{t("poweredBy")}</span>
+          </div>
+
           <div className="text-center lg:text-left">
             <h1 className="text-3xl font-extrabold tracking-tight lg:text-5xl lg:leading-tight">
               AGENTIC <span className="am-title-gradient">MINER</span>
@@ -122,7 +132,7 @@ export default function LoginScreen() {
           {/* Daftar fitur — desktop only */}
           <ul className="hidden w-full max-w-lg flex-col gap-4 pt-3 lg:flex">
             <LoginFeature
-              icon={<Sparkles className="h-5 w-5 text-[#C994F7]" />}
+              icon={<Sparkles className="h-5 w-5 text-[#FCD535]" />}
               title={t("featMining")}
               desc={t("featMiningDesc")}
             />

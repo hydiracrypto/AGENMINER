@@ -132,9 +132,9 @@ export default function MineTab() {
           <motion.div
             animate={{ rotate: -360 }}
             transition={{ duration: mining ? 4.5 : 22, repeat: Infinity, ease: "linear" }}
-            className="absolute inset-4 rounded-full border border-[#A855F7]/30"
+            className="absolute inset-4 rounded-full border border-[#FCD535]/25"
           >
-            <span className="absolute top-1/2 -right-1 h-2 w-2 rounded-full bg-[#C994F7] shadow-[0_0_10px_rgba(168,85,247,0.9)]" />
+            <span className="absolute top-1/2 -right-1 h-2 w-2 rounded-full bg-[#F8D33A] shadow-[0_0_10px_rgba(248,211,58,0.9)]" />
           </motion.div>
 
           {/* progress ring cooldown */}
@@ -225,7 +225,7 @@ export default function MineTab() {
       <div className="rounded-2xl border border-[#2B3139] bg-[#181A20] p-4 space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold flex items-center gap-1.5">
-            <Sparkles className="h-4 w-4 text-[#C994F7]" />
+            <Sparkles className="h-4 w-4 text-[#FCD535]" />
             {t("miningPrompt")}
           </h3>
           <button
@@ -255,7 +255,7 @@ export default function MineTab() {
               <button
                 key={i}
                 onClick={() => setPrompt(ex)}
-                className="text-left text-xs text-[#848E9C] hover:text-[#C994F7] rounded-lg border border-dashed border-[#2B3139] px-3 py-2 hover:border-[#C994F7]/50 transition-colors truncate"
+                className="text-left text-xs text-[#848E9C] hover:text-[#FCD535] rounded-lg border border-dashed border-[#2B3139] px-3 py-2 hover:border-[#FCD535]/50 transition-colors truncate"
               >
                 💡 {ex}
               </button>

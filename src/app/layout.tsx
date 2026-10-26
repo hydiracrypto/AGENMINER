@@ -21,8 +21,9 @@ export const metadata: Metadata = {
   keywords: [
     "AGENTIC MINER",
     "AGENMINER",
-    "BNB Chain",
+    "Binance Agentic AI",
     "Binance Agentic Wallet",
+    "BNB Chain",
     "mining game",
     "AI mining",
     "AI 挖矿",
@@ -36,10 +37,10 @@ export const metadata: Metadata = {
     name: "Agentic Miner",
   },
   openGraph: {
-    title: "AGENTIC MINER ⛏️ — AI Prompt Mining on BNB Chain",
+    title: "AGENTIC MINER ⛏️ — Binance Agentic AI Mining on BNB Chain",
     siteName: "Agentic Miner",
     description:
-      "Mine AGENMINER tokens with AI prompts on BNB Smart Chain — sign in with Binance Agentic Wallet. No minimum withdrawal, fees go to PancakeSwap liquidity!",
+      "Binance Agentic AI mining experience — mine AGENMINER tokens with AI prompts on BNB Smart Chain. Sign in with Binance Agentic Wallet. No minimum withdrawal, fees go to PancakeSwap liquidity!",
     type: "website",
     images: ["/logo.png"],
   },

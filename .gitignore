@@ -61,3 +61,4 @@ server.log
 !vendor/node_modules/**/node_modules
 !vendor/node_modules/**/node_modules/**
 tool-results/
+scripts/shot-login-desktop.png

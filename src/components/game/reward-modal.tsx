@@ -51,9 +51,9 @@ export default function RewardModal({ result, onClose }: { result: MineResult | 
               <div className="mt-5 w-full space-y-2">
                 <div className="flex items-center justify-between text-xs">
                   <span className="flex items-center gap-1.5 text-[#848E9C]">
-                    <TrendingUp className="h-3.5 w-3.5 text-[#C994F7]" /> {t("aiScore")}
+                    <TrendingUp className="h-3.5 w-3.5 text-[#FCD535]" /> {t("aiScore")}
                   </span>
-                  <span className="font-extrabold text-[#C994F7] tabular-nums">{result.score}/100</span>
+                  <span className="font-extrabold text-[#FCD535] tabular-nums">{result.score}/100</span>
                 </div>
                 <div className="h-2.5 rounded-full bg-[#0B0E11] overflow-hidden border border-[#2B3139]">
                   <motion.div
@@ -61,14 +61,14 @@ export default function RewardModal({ result, onClose }: { result: MineResult | 
                     initial={{ width: 0 }}
                     animate={{ width: `${result.score}%` }}
                     transition={{ duration: 0.9, ease: "easeOut" }}
-                    className="h-full rounded-full bg-gradient-to-r from-[#A855F7] to-[#C994F7]"
+                    className="h-full rounded-full bg-gradient-to-r from-[#F8D33A] to-[#F0B90B]"
                   />
                 </div>
               </div>
 
               {/* Narasi AI */}
               <div className="mt-5 w-full rounded-xl border border-[#2B3139] bg-[#0B0E11] p-3.5 text-left">
-                <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-[#C994F7] mb-1.5">
+                <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide text-[#FCD535] mb-1.5">
                   <Bot className="h-3.5 w-3.5" /> Agentic AI Miner
                 </p>
                 <p className="text-xs leading-relaxed text-[#EAECEF]">{result.summary}</p>

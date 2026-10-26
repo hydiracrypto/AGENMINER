@@ -71,7 +71,7 @@ export default function BoostTab() {
   const canAfford = !atMaxLevel && user.balance >= cost;
   const tokenomics = [
     { label: t("tmPool"), value: TOKEN.miningPool, pct: 70, color: "#F0B90B" },
-    { label: t("tmTeam"), value: TOKEN.teamTreasury, pct: 10, color: "#A855F7" },
+    { label: t("tmTeam"), value: TOKEN.teamTreasury, pct: 10, color: "#1E80FF" },
     { label: t("tmMarketing"), value: TOKEN.marketing, pct: 10, color: "#20B26C" },
     { label: t("tmLiquidity"), value: TOKEN.liquidity, pct: 10, color: "#5E6673" },
   ];

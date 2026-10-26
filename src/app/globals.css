@@ -173,9 +173,9 @@ body {
   -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 0%, black 30%, transparent 75%);
 }
 
-/* Teks judul gradient emas→ungu */
+/* Teks judul gradient emas Binance */
 .am-title-gradient {
-  background: linear-gradient(100deg, #f8d33a 0%, #f0b90b 45%, #c994f7 100%);
+  background: linear-gradient(100deg, #fcd535 0%, #f0b90b 52%, #d9a406 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;

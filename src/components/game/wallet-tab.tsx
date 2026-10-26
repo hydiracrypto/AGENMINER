@@ -112,7 +112,7 @@ export default function WalletTab() {
       <div className="grid grid-cols-3 gap-2.5">
         <StatCard icon={<Coins className="h-4 w-4 text-[#F0B90B]" />} label={t("statBalance")} value={fmtNum(user.balance, 2, lang)} />
         <StatCard icon={<TrendingUp className="h-4 w-4 text-[#20B26C]" />} label={t("statMined")} value={fmtNum(user.totalMined, 2, lang)} />
-        <StatCard icon={<Users className="h-4 w-4 text-[#C994F7]" />} label={t("statRef")} value={fmtNum(user.refEarnings, 2, lang)} />
+        <StatCard icon={<Users className="h-4 w-4 text-[#FCD535]" />} label={t("statRef")} value={fmtNum(user.refEarnings, 2, lang)} />
       </div>
 
       {/* Tarik ke wallet + Likuiditas — grid desktop 2 kolom */}
@@ -124,7 +124,7 @@ export default function WalletTab() {
             <Send className="h-4 w-4 text-[#F0B90B]" /> {t("withdrawTitle", { chain: TOKEN.chainShort })}
           </h3>
           <div className="flex items-center gap-1 shrink-0">
-            <span className="flex items-center gap-1 rounded-full bg-[#C994F7]/15 border border-[#C994F7]/40 px-2 py-1 text-[9px] font-extrabold text-[#C994F7]">
+            <span className="flex items-center gap-1 rounded-full bg-[#FCD535]/15 border border-[#FCD535]/40 px-2 py-1 text-[9px] font-extrabold text-[#FCD535]">
               <Cpu className="h-3 w-3" /> {t("autoMintBadge")}
             </span>
             <span className="flex items-center gap-1 rounded-full bg-[#20B26C]/15 border border-[#20B26C]/40 px-2 py-1 text-[9px] font-extrabold text-[#20B26C]">
@@ -200,19 +200,19 @@ export default function WalletTab() {
       </div>
 
       {/* Likuiditas PancakeSwap dari fee penarikan */}
-      <div className="am-card rounded-2xl border border-[#E8C4F7]/25 bg-gradient-to-br from-[#A855F7]/8 to-[#181A20] p-5">
+      <div className="am-card rounded-2xl border border-[#F0B90B]/25 bg-gradient-to-br from-[#F0B90B]/8 to-[#181A20] p-5">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold flex items-center gap-1.5">
-            <Droplets className="h-4 w-4 text-[#C994F7]" /> {t("liquidityTitle")}
+            <Droplets className="h-4 w-4 text-[#FCD535]" /> {t("liquidityTitle")}
           </h3>
-          <span className="rounded-full bg-[#A855F7]/15 border border-[#A855F7]/40 px-2 py-0.5 text-[9px] font-extrabold text-[#C994F7]">
+          <span className="rounded-full bg-[#F0B90B]/15 border border-[#F0B90B]/40 px-2 py-0.5 text-[9px] font-extrabold text-[#FCD535]">
             {PANCAKESWAP.dex}
           </span>
         </div>
         <p className="mt-0.5 text-xs text-[#848E9C]">{t("liquiditySub")}</p>
         <div className="mt-3 flex items-end justify-between rounded-xl bg-[#0B0E11] border border-[#2B3139] px-4 py-3">
           <div>
-            <p className="text-xl font-extrabold tabular-nums text-[#C994F7]">
+            <p className="text-xl font-extrabold tabular-nums text-[#FCD535]">
               {stats ? `+${fmtNum(stats.totalLiquidityAdded, 2, lang)}` : "—"} <span className="text-xs font-semibold">{TOKEN.symbol}</span>
             </p>
             <p className="text-[10px] text-[#848E9C]">{t("feeLabel", { p: stats?.withdrawFeePct ?? WITHDRAW.feePct })}</p>
@@ -283,7 +283,7 @@ export default function WalletTab() {
                   <p className="text-sm font-bold tabular-nums">
                     -{fmtNum(w.amount, 2, lang)} {TOKEN.symbol}
                     {typeof w.fee === "number" && w.fee > 0 && (
-                      <span className="ml-2 text-[10px] font-semibold text-[#C994F7]">
+                      <span className="ml-2 text-[10px] font-semibold text-[#FCD535]">
                         💧 {t("feeAmountLabel")} {fmtNum(w.fee, 4, lang)} → PCS
                       </span>
                     )}
@@ -295,7 +295,7 @@ export default function WalletTab() {
                 <span
                   className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold shrink-0 ${
                     w.status === "PROCESSED"
-                      ? "bg-[#C994F7]/15 text-[#C994F7]"
+                      ? "bg-[#FCD535]/15 text-[#FCD535]"
                       : w.status === "REJECTED"
                         ? "bg-[#F6465D]/15 text-[#F6465D]"
                         : "bg-[#F0B90B]/15 text-[#F0B90B]"

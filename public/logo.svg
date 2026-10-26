@@ -1,29 +1,62 @@
-<?xml version="1.0" encoding="utf-8"?>
-<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
-	 viewBox="0 0 30 30" style="enable-background:new 0 0 30 30;" xml:space="preserve">
-<defs>
-  <style type="text/css">
-    .st194{fill:#2D2D2D;stroke:#FFFFFF;stroke-width:0.6317;stroke-miterlimit:10;}
-    .st23{fill:#FFFFFF;}
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Agentic Miner — Binance Agentic AI style logo">
+  <defs>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FCD535"/>
+      <stop offset="1" stop-color="#F0B90B"/>
+    </linearGradient>
+    <linearGradient id="goldDim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F0B90B"/>
+      <stop offset="1" stop-color="#D9A406"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.38" r="0.75">
+      <stop offset="0" stop-color="#F0B90B" stop-opacity="0.16"/>
+      <stop offset="0.55" stop-color="#F0B90B" stop-opacity="0.05"/>
+      <stop offset="1" stop-color="#0B0E11" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
 
-    .z-breathe {
-      animation: breathe 2.5s ease-in-out infinite;
-    }
+  <!-- ══ Latar app-icon gelap Binance ══ -->
+  <rect width="1024" height="1024" rx="228" fill="#0B0E11"/>
+  <rect width="1024" height="1024" rx="228" fill="url(#glow)"/>
+  <rect x="10" y="10" width="1004" height="1004" rx="218" fill="none" stroke="#2B3139" stroke-width="3"/>
 
-    @keyframes breathe {
-      0%, 100% { opacity: 0.7; }
-      50% { opacity: 1; }
-    }
-  </style>
-</defs>
+  <!-- ══ Orbit ring putus-putus — agent swarm ══ -->
+  <circle cx="512" cy="512" r="430" fill="none" stroke="#F0B90B" stroke-opacity="0.38" stroke-width="4" stroke-dasharray="22 16"/>
+  <!-- node agent di orbit -->
+  <circle cx="512" cy="82" r="14" fill="#FCD535"/>
+  <circle cx="512" cy="82" r="26" fill="none" stroke="#FCD535" stroke-opacity="0.35" stroke-width="3"/>
+  <circle cx="140" cy="727" r="11" fill="#F0B90B"/>
+  <circle cx="884" cy="727" r="11" fill="#F0B90B"/>
 
-<g>
-  <path class="st194" d="M24.51,28.51H5.49c-2.21,0-4-1.79-4-4V5.49c0-2.21,1.79-4,4-4h19.03c2.21,0,4,1.79,4,4v19.03
-    C28.51,26.72,26.72,28.51,24.51,28.51z"/>
-  <g class="z-breathe">
-    <path class="st23" d="M15.47,7.1l-1.3,1.85c-0.2,0.29-0.54,0.47-0.9,0.47h-7.1V7.09C6.16,7.1,15.47,7.1,15.47,7.1z"/>
-    <polygon class="st23" points="24.3,7.1 13.14,22.91 5.7,22.91 16.86,7.1"/>
-    <path class="st23" d="M14.53,22.91l1.31-1.86c0.2-0.29,0.54-0.47,0.9-0.47h7.09v2.33H14.53z"/>
+  <!-- ══ Jejak sirkuit AI dari 4 diamond ══ -->
+  <g stroke="#F0B90B" stroke-opacity="0.55" stroke-width="6" stroke-linecap="round">
+    <line x1="512" y1="168" x2="512" y2="120"/>
+    <line x1="512" y1="856" x2="512" y2="904"/>
+    <line x1="856" y1="512" x2="904" y2="512"/>
+    <line x1="168" y1="512" x2="120" y2="512"/>
   </g>
-</g>
+  <circle cx="512" cy="108" r="10" fill="#FCD535"/>
+  <circle cx="512" cy="916" r="10" fill="#FCD535"/>
+  <circle cx="916" cy="512" r="10" fill="#FCD535"/>
+  <circle cx="108" cy="512" r="10" fill="#FCD535"/>
+
+  <!-- ══ Kluster diamond khas Binance (N/E/S/W) ══ -->
+  <g fill="url(#goldDim)">
+    <rect x="447" y="195" width="130" height="130" rx="20" transform="rotate(45 512 260)"/>
+    <rect x="699" y="447" width="130" height="130" rx="20" transform="rotate(45 764 512)"/>
+    <rect x="447" y="699" width="130" height="130" rx="20" transform="rotate(45 512 764)"/>
+    <rect x="195" y="447" width="130" height="130" rx="20" transform="rotate(45 260 512)"/>
+  </g>
+
+  <!-- ══ Inti emas + pickaxe (mining) ══ -->
+  <circle cx="512" cy="512" r="180" fill="url(#gold)" stroke="#0B0E11" stroke-width="14"/>
+  <!-- gagang pickaxe -->
+  <line x1="512" y1="436" x2="512" y2="648" stroke="#0B0E11" stroke-width="42" stroke-linecap="round"/>
+  <!-- kepala pickaxe: sabit dengan ujung runcing ke bawah -->
+  <path d="M 396 468 Q 512 360 628 468 L 648 502 Q 512 400 376 502 Z" fill="#0B0E11"/>
+
+  <!-- ══ Sparkle AI ══ -->
+  <path d="M 782 210 C 789 235 798 244 823 251 C 798 258 789 267 782 292 C 775 267 766 258 741 251 C 766 244 775 235 782 210 Z" fill="#F8D33A"/>
+  <path d="M 246 716 C 251 733 257 739 274 744 C 257 749 251 755 246 772 C 241 755 235 749 218 744 C 235 739 241 733 246 716 Z" fill="#F8D33A" fill-opacity="0.85"/>
+  <path d="M 286 246 C 289 257 293 261 304 264 C 293 267 289 271 286 282 C 283 271 279 267 268 264 C 279 261 283 257 286 246 Z" fill="#FCD535" fill-opacity="0.7"/>
 </svg>

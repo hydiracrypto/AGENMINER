@@ -45,15 +45,15 @@ export default function FriendsTab() {
       {/* Kartu komisi + Bagikan — grid desktop 2 kolom */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:items-start">
       {/* Kartu komisi */}
-      <div className="am-card rounded-2xl border border-[#A855F7]/30 bg-gradient-to-br from-[#A855F7]/12 to-[#181A20] p-5">
+      <div className="am-card rounded-2xl border border-[#F0B90B]/30 bg-gradient-to-br from-[#F0B90B]/12 to-[#181A20] p-5">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-sm font-bold flex items-center gap-1.5">
-              <Users className="h-4 w-4 text-[#C994F7]" /> {t("minerTeam")}
+              <Users className="h-4 w-4 text-[#FCD535]" /> {t("minerTeam")}
             </h3>
             <p className="text-xs text-[#848E9C] mt-0.5">{t("inviteDesc")}</p>
           </div>
-          <Coins className="h-8 w-8 text-[#C994F7]" />
+          <Coins className="h-8 w-8 text-[#FCD535]" />
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-2.5">

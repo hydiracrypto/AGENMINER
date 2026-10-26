@@ -54,7 +54,7 @@ export default function GameHeader() {
 
         {/* Saldo */}
         <div className="pb-3 pt-3">
-          <div className="am-card rounded-2xl bg-gradient-to-r from-[#F0B90B]/15 via-[#181A20] to-[#A855F7]/10 border border-[#F0B90B]/25 px-4 py-3 flex items-center justify-between lg:max-w-xl">
+          <div className="am-card rounded-2xl bg-gradient-to-r from-[#F0B90B]/15 via-[#181A20] to-[#FCD535]/8 border border-[#F0B90B]/25 px-4 py-3 flex items-center justify-between lg:max-w-xl">
             <div className="flex items-center gap-2.5">
               <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[#F8D33A] to-[#F0B90B] text-[#0B0E11] shadow-[0_0_18px_rgba(240,185,11,0.35)]">
                 <Coins className="h-5 w-5" />

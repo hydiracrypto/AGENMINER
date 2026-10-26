@@ -2,7 +2,7 @@
 
 // ============================================
 // AGENTIC MINER — Latar dekoratif profesional
-// Glow radial emas/ungu + pola grid halus (fixed, non-interaktif)
+// Glow radial emas Binance + pola grid halus (fixed, non-interaktif)
 // ============================================
 
 export default function PageBackground() {
@@ -10,8 +10,8 @@ export default function PageBackground() {
     <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden>
       {/* Glow emas kiri-atas */}
       <div className="absolute -top-40 left-1/4 h-[480px] w-[480px] rounded-full bg-[#F0B90B]/10 blur-[120px]" />
-      {/* Glow ungu kanan-bawah */}
-      <div className="absolute -bottom-32 -right-24 h-[420px] w-[420px] rounded-full bg-[#A855F7]/8 blur-[120px]" />
+      {/* Glow emas lembut kanan-bawah */}
+      <div className="absolute -bottom-32 -right-24 h-[420px] w-[420px] rounded-full bg-[#FCD535]/7 blur-[120px]" />
       {/* Glow hijau tipis kiri-bawah */}
       <div className="absolute bottom-1/4 -left-32 h-[360px] w-[360px] rounded-full bg-[#20B26C]/6 blur-[110px]" />
       {/* Pola grid halus */}
