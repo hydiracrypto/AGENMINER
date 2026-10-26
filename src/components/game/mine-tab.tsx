@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Pickaxe, Loader2, Clock, Shuffle, Sparkles, Flame, Zap, Target } from "lucide-react";
+import { Pickaxe, Loader2, Clock, Shuffle, Sparkles, Flame, Zap, Target, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { GAME, TOKEN, computeReward, fmtNum, randomExamples, streakMultiplier } from "@/lib/game-config";
@@ -189,21 +189,49 @@ export default function MineTab() {
           </motion.button>
         </div>
 
-        {/* Info row */}
-        <div className="mt-1 flex flex-wrap justify-center gap-2 text-[11px]">
-          <span className="flex items-center gap-1 rounded-full bg-[#181A20] border border-[#2B3139] px-3 py-1.5 text-[#848E9C]">
-            <Zap className="h-3 w-3 text-[#F0B90B]" /> Power x{user.miningPower}
-          </span>
-          <span className="flex items-center gap-1 rounded-full bg-[#181A20] border border-[#2B3139] px-3 py-1.5 text-[#848E9C]">
-            <Flame className="h-3 w-3 text-[#F6465D]" />{" "}
-            {t("streakDays", { n: user.streak, p: Math.round((streakMultiplier(user.streak) - 1) * 100) })}
-          </span>
-          <span className="flex items-center gap-1 rounded-full bg-[#181A20] border border-[#2B3139] px-3 py-1.5 text-[#848E9C]">
-            {t("perMine", { n: fmtNum(previewReward, 2, lang), sym: TOKEN.symbol })}
-          </span>
-          <span className="flex items-center gap-1 rounded-full bg-[#181A20] border border-[#2B3139] px-3 py-1.5 text-[#848E9C]">
-            <Target className="h-3 w-3 text-[#20B26C]" /> {t("capLeft", { m: fmtNum(user.totalMined, 0, lang), n: fmtNum(user.capRemaining, 0, lang) })}
-          </span>
+        {/* Info grid 2x2 — tile seragam, rapi di mobile & desktop */}
+        <div className="mt-3 grid w-full max-w-md grid-cols-2 gap-2">
+          <div className="rounded-xl border border-[#2B3139] bg-[#181A20] px-3 py-2">
+            <p className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide text-[#848E9C]">
+              <Zap className="h-3 w-3 text-[#F0B90B]" /> {t("powerLabel")}
+            </p>
+            <p className="mt-0.5 text-sm font-extrabold text-[#EAECEF] tabular-nums">x{user.miningPower}</p>
+          </div>
+          <div className="rounded-xl border border-[#2B3139] bg-[#181A20] px-3 py-2">
+            <p className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide text-[#848E9C]">
+              <Flame className="h-3 w-3 text-[#F6465D]" /> {t("streakLabel")}
+            </p>
+            <p className="mt-0.5 text-sm font-extrabold text-[#EAECEF] tabular-nums">
+              {user.streak} {t("daysShort")}{" "}
+              <span className="text-[11px] font-bold text-[#20B26C]">
+                +{Math.round((streakMultiplier(user.streak) - 1) * 100)}%
+              </span>
+            </p>
+          </div>
+          <div className="rounded-xl border border-[#2B3139] bg-[#181A20] px-3 py-2">
+            <p className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide text-[#848E9C]">
+              <Coins className="h-3 w-3 text-[#F8D33A]" /> {t("perMineLabel")}
+            </p>
+            <p className="mt-0.5 truncate text-sm font-extrabold text-[#EAECEF] tabular-nums">
+              ~{fmtNum(previewReward, 0, lang)}{" "}
+              <span className="text-[10px] font-semibold text-[#848E9C]">{TOKEN.symbol}</span>
+            </p>
+          </div>
+          <div className="rounded-xl border border-[#2B3139] bg-[#181A20] px-3 py-2">
+            <p className="flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide text-[#848E9C]">
+              <Target className="h-3 w-3 text-[#20B26C]" /> {t("capLabel")}
+            </p>
+            <p className="mt-0.5 text-sm font-extrabold text-[#EAECEF] tabular-nums">
+              {fmtNum(user.totalMined, 0, lang)}{" "}
+              <span className="text-[10px] font-semibold text-[#848E9C]">/ {fmtNum(GAME.perWalletCap, 0, lang)}</span>
+            </p>
+            <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-[#2B3139]">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-[#F8D33A] to-[#F0B90B] transition-all"
+                style={{ width: `${Math.min(100, (user.totalMined / GAME.perWalletCap) * 100)}%` }}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Batas saldo akhir — bakaran upgrade didaur ulang ke pool, tidak kembali ke saldo */}

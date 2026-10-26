@@ -48,6 +48,11 @@ const ZH = {
   viaPromptAI: "通过 AI 提示词",
   streakDays: "连续 {n} 天 (+{p}%)",
   perMine: "约 {n} {sym} / 次",
+  powerLabel: "算力",
+  streakLabel: "连续天数",
+  daysShort: "天",
+  perMineLabel: "每次产出",
+  capLabel: "钱包上限",
   miningPrompt: "挖矿提示词",
   randomIdeas: "随机灵感",
   promptPlaceholder:
@@ -256,6 +261,11 @@ const EN: Record<keyof typeof ZH, string> = {
   viaPromptAI: "via AI Prompt",
   streakDays: "Streak {n} days (+{p}%)",
   perMine: "~{n} {sym} / mine",
+  powerLabel: "Power",
+  streakLabel: "Streak",
+  daysShort: "days",
+  perMineLabel: "Per mine",
+  capLabel: "Wallet cap",
   miningPrompt: "Mining Prompt",
   randomIdeas: "Random ideas",
   promptPlaceholder:
