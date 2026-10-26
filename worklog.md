@@ -786,3 +786,18 @@ Stage Summary:
 - Blok statistik MINE kini grid 2x2 seragam dgn progress bar cap — rapi di mobile & desktop.
 - Owner perlu Publish sekali lagi utk layout baru ini, lalu hard refresh.
 - Referral: versi live sudah memuat tombol Refresh ala Top 100 Miners (konfirmasi chunk 16f91653 live).
+
+---
+Task ID: 34
+Agent: Z.ai (main agent)
+Task: Hilangkan tampilan yang dilingkari biru (tombol Copy Code di kartu Share) + push ke GitHub.
+
+Work Log:
+- Owner kirim screenshot Friends tab (20:36) dgn lingkaran biru di tombol "Copy Code: EVERHAND.AI" — permintaan eksplisit: hilangkan + push.
+- friends-tab.tsx: hapus tombol Copy Code; tombol Share emas jadi full width (w-full h-11) di bawah baris link referral. Ikon salin pada baris link & kartu komisi (Invite Code) tidak berubah.
+- Konteks flip-flop: dihapus di Task 30, dipulihkan di Task 31 (saat itu pesan owner ambigu "Hilang tampilan ini yang di bulatkan"), kini dihapus permanen dgn instruksi jelas.
+- TSC OK, build sukses. Commit + push main.
+
+Stage Summary:
+- Kartu Share kini: baris link (ikon salin) + tombol Share full width + menu sosmed.
+- Menunggu owner Publish: layout ini + grid statistik MINE 2x2 (Task 33) akan live bersamaan.
