@@ -691,3 +691,25 @@ Work Log:
 Stage Summary:
 - Tagline & kartu referral kini sesuai permintaan owner
 - Deploy/production publish ditunda oleh owner ("Deploy nanti aja, saya mau memperbaiki lagi")
+
+---
+Task ID: 29
+Agent: main (Z.ai)
+Task: Halaman Friends — daftar follower referral (20/hal + Next/Previous), share ke semua sosmed, How Referrals Work
+
+Work Log:
+- API baru /api/referrals (GET): filter referredById dari address pemilik; paginasi limit=20 (maks 50), urut createdAt desc; return username/agentId/wallet(truncate)/avatar/totalMined/verifiedAgent/joinedAt + total/page/totalPages
+- types.ts: ReferralItem & ReferralsResult; api-client: api.referrals(address, page) dgn cache-buster
+- friends-tab.tsx ditulis ulang:
+  (a) kartu My Referral Team: daftar miner bergabung via link (avatar, username + badge AGENT, wallet truncate, total mined, tanggal join); paginasi Previous/Next + Page x/y; badge jumlah; empty state
+  (b) Share dikembalikan: perangkat dgn Web Share API -> share sheet OS; desktop -> menu expandable X/Twitter, Telegram, WhatsApp, Facebook + tombol "More..." (native)
+  (c) seksi How Referrals Work 3 langkah dikembalikan (keys i18n lama dipakai ulang)
+- Fix bug: toggle ganda shareOpen saat tanpa Web Share API (onClick & share() saling meniadakan) -> diputuskan di onClick saja
+- i18n zh/en: refListTitle, refJoinedOn, refEmpty, prev, next, pageOf, shareMore
+- Test scripts/test-referrals.mjs: seed 1 referrer + 22 referred -> hal1 20 item (terbaru dulu), hal2 2 item, invalid address 400; data test dibersihkan
+- TSC bersih; build sukses (route /api/referrals terdaftar); commit d3a1b43 push (5567da7..d3a1b43)
+
+Stage Summary:
+- Owner bisa lihat siapa saja yang join via link referral-nya, 20/halaman dengan Next/Previous
+- Link referral kini bisa dibagikan ke X, Telegram, WhatsApp, Facebook + native share
+- Menunggu owner menekan Publish untuk live
